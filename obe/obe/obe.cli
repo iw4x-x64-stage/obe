@@ -21,7 +21,13 @@ namespace obe
      \cb{obe} serves Demonware online services that IW4x connects to: the
      authentication over HTTPS, the lobby service gateway over TCP, and the
      bandwidth test over UDP. It runs until interrupted (\cb{SIGINT} or
-     \cb{SIGTERM})."
+     \cb{SIGTERM}).
+
+     The authentication accepts the Xbox Live style platform tokens that
+     IW4x issues. Each IW4x installation signs its tokens with its own key
+     and the user id (XUID) is derived from that key, so a user id can only
+     be presented with its key. See \cb{--insecure-authentication} for
+     development."
   }
 
   class options
@@ -255,9 +261,9 @@ namespace obe
 
     bool --insecure-authentication
     {
-      "Accept any platform token, deriving the user identity from the token
-       itself. Anyone presenting the same token is the same user, so this is
-       only suitable for development."
+      "Accept any platform token without verifying it, deriving the user
+       identity from the token itself. Anyone presenting the same token is
+       the same user, so this is only suitable for development."
     }
   };
 }

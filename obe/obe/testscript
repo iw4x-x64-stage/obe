@@ -38,35 +38,28 @@ sha256sum --sum-only $src_base/obe.cli >>>$src_base/pregenerated/obe/obe.cli.sha
 
   : tls
   :
-  $* --insecure-authentication 2>>EOE != 0
+  $* 2>>EOE != 0
   error: TLS certificate and key are required
     info: specify them with --tls-certificate and --tls-key
   EOE
 
-  : authenticator
-  :
-  $* --tls-certificate c.pem --tls-key k.pem 2>>EOE != 0
-  error: no authenticator configured
-    info: specify --insecure-authentication for development
-  EOE
-
   : address
   :
-  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
-     --auth-address 'not-an-address' 2>>EOE != 0
+  $* --tls-certificate c.pem --tls-key k.pem --auth-address 'not-an-address' \
+     2>>EOE != 0
   error: invalid authentication address 'not-an-address'
   EOE
 
   : bandwidth-address
   :
-  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+  $* --tls-certificate c.pem --tls-key k.pem \
      --bandwidth-address 'not-an-address' 2>>EOE != 0
   error: invalid bandwidth test address 'not-an-address'
   EOE
 
   : bandwidth-public-address
   :
-  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+  $* --tls-certificate c.pem --tls-key k.pem \
      --bandwidth-public-address '::1' 2>>EOE != 0
   error: invalid bandwidth test public address '::1'
     info: specify the IPv4 address the clients can reach
@@ -74,8 +67,7 @@ sha256sum --sum-only $src_base/obe.cli >>>$src_base/pregenerated/obe/obe.cli.sha
 
   : certificate
   :
-  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
-     2>>~/EOE/ != 0
+  $* --tls-certificate c.pem --tls-key k.pem 2>>~/EOE/ != 0
   /error: unable to load TLS certificate and key: .+/
   EOE
 

@@ -1068,10 +1068,11 @@ namespace obe
        << "                                the new version. Requires \033[1m--db-name\033[0m." << ::std::endl;
 
     os << std::endl
-       << "\033[1m--insecure-authentication\033[0m       Accept any platform token, deriving the user" << ::std::endl
-       << "                                identity from the token itself. Anyone" << ::std::endl
-       << "                                presenting the same token is the same user, so" << ::std::endl
-       << "                                this is only suitable for development." << ::std::endl;
+       << "\033[1m--insecure-authentication\033[0m       Accept any platform token without verifying it," << ::std::endl
+       << "                                deriving the user identity from the token" << ::std::endl
+       << "                                itself. Anyone presenting the same token is the" << ::std::endl
+       << "                                same user, so this is only suitable for" << ::std::endl
+       << "                                development." << ::std::endl;
 
     p = ::obe::cli::usage_para::option;
 
@@ -1382,7 +1383,12 @@ namespace obe
        << ::std::endl
        << "\033[1mobe\033[0m serves Demonware online services that IW4x connects to: the authentication" << ::std::endl
        << "over HTTPS, the lobby service gateway over TCP, and the bandwidth test over" << ::std::endl
-       << "UDP. It runs until interrupted (\033[1mSIGINT\033[0m or \033[1mSIGTERM\033[0m)." << ::std::endl;
+       << "UDP. It runs until interrupted (\033[1mSIGINT\033[0m or \033[1mSIGTERM\033[0m)." << ::std::endl
+       << ::std::endl
+       << "The authentication accepts the Xbox Live style platform tokens that IW4x" << ::std::endl
+       << "issues. Each IW4x installation signs its tokens with its own key and the user" << ::std::endl
+       << "id (XUID) is derived from that key, so a user id can only be presented with its" << ::std::endl
+       << "key. See \033[1m--insecure-authentication\033[0m for development." << ::std::endl;
 
     p = ::obe::options::print_usage (os, ::obe::cli::usage_para::text);
 

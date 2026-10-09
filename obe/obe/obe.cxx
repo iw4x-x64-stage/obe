@@ -33,6 +33,7 @@
 #include <libobe/auth-server.hxx>
 #include <libobe/lsg-registry.hxx>
 #include <libobe/authenticator.hxx>
+#include <libobe/authenticator-xbl.hxx>
 #include <libobe/service-storage.hxx>
 #include <libobe/service-bandwidth.hxx>
 #include <libobe/service-messaging.hxx>
@@ -64,8 +65,6 @@ namespace obe
     //
     // Anyone presenting the same token is the same user, so this is only
     // suitable for development (see --insecure-authentication).
-    //
-    // @@ Implement the platform token verification.
     //
     class development_authenticator: public authenticator
     {
@@ -395,14 +394,6 @@ namespace obe
       throw failed ();
     }
 
-    if (!o.insecure_authentication ())
-    {
-      println (cerr,
-               "error: no authenticator configured\n"
-               "  info: specify --insecure-authentication for development");
-      throw failed ();
-    }
-
     const tcp::endpoint ae (
       address (o.auth_address (), "authentication"), o.auth_port ());
 
@@ -454,10 +445,15 @@ namespace obe
     //
     const ticket_sealer sealer (load_ticket_key (o));
 
-    // Create the authenticator and the authentication settings.
+    // Create the authenticator and the authentication settings. We verify
+    // the Xbox Live style tokens that IW4x issues unless asked to accept
+    // any token.
     //
+    xbl_authenticator xa;
     development_authenticator da;
-    naming_authenticator auth (da);
+    naming_authenticator auth (o.insecure_authentication ()
+                               ? static_cast<authenticator&> (da)
+                               : xa);
 
     auth_settings as;
     for (uint32_t t: o.title ())
@@ -545,7 +541,7 @@ namespace obe
       throw failed ();
     }
 
-    if (verb >= 1)
+    if (o.insecure_authentication () && verb >= 1)
       println (cerr,
                "warning: accepting any platform token (insecure "
                "authentication)");

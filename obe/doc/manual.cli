@@ -26,7 +26,8 @@ serves all of them from a single process:
 \li|\b{TCP port 443}
 
 The authentication server. The client sends its platform token over HTTPS
-and receives a ticket for the lobby service gateway.|
+and, once \c{obe} verifies it, receives a ticket for the lobby service
+gateway.|
 
 \li|\b{TCP port 3074}
 
@@ -233,14 +234,13 @@ comments. Let's create \c{/etc/obe/obe.options} with the following contents:
 --ticket-key      /etc/obe/ticket.key
 --db-name         obe
 --verbose         2
-
---insecure-authentication
 \
 
-The \c{--insecure-authentication} option is currently the only way to
-authenticate the clients and \c{obe} refuses to start without it. It accepts
-any platform token and derives the user identity from the token itself, so
-anyone who presents the same token is the same user.
+The authentication server verifies the platform tokens that IW4x issues. Each
+IW4x installation signs its tokens with its own key and \c{obe} derives the
+user id from that key, so a user id is only accepted together with its key.
+For development we can add \c{--insecure-authentication}, which accepts any
+token and makes anyone who presents the same token the same user.
 
 The clients send their bandwidth test packets to the address they reached the
 gateway at and to the port \c{obe} receives them on. If the server is behind
@@ -281,7 +281,6 @@ next step), so for this run we let the system choose the ports:
 $ sudo -u obe /opt/obe/bin/obe                     \
   --options-file /etc/obe/obe.options              \
   --auth-port 0 --lsg-port 0 --bandwidth-port 0
-warning: accepting any platform token (insecure authentication)
 listening on 0.0.0.0:41075 and 0.0.0.0:46261, testing bandwidth on
 0.0.0.0:51243
 ^Cshutting down
