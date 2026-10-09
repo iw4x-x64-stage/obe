@@ -41,6 +41,12 @@ obe/doc/style/** -spdx
 #
 **/pregenerated/** -spdx
 
+# The publisher files are served to the clients byte for byte (the IW4x
+# playlists, for example, have CRLF line endings and Windows-1252 names), so
+# they are neither normalized nor given the SPDX header.
+#
+obe/data/publisher/** -text -spdx
+
 # The test certificates and keys are PEM data, which has no comment syntax.
 #
 libobe/tests/**/*.pem -spdx

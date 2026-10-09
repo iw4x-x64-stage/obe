@@ -1,0 +1,17 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+./: file{** -buildfile}
+
+# Install into the data directory, say, /usr/share/obe/, recreating
+# subdirectories.
+#
+# Note that publisher/ holds nothing but the title subdirectories (see
+# --publisher-files), so it can be used as is from both the source and
+# the installation directories.
+#
+*:
+{
+  install         = data/
+  install.subdirs = true
+}

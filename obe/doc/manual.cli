@@ -239,8 +239,15 @@ comments. Let's create \c{/etc/obe/obe.options} with the following contents:
 --ticket-key      /etc/obe/ticket.key
 --db-name         obe
 --db-host         /var/run/postgresql
+--publisher-files /opt/obe/share/obe/publisher
 --verbose         2
 \
+
+The publisher files are the files that the title offers to every player.
+IW4x downloads its playlists from them, so without \c{--publisher-files}
+the players have no playlists to choose from. The \c{obe} package installs
+the IW4x playlists into \c{share/obe/publisher/2010/}, and \c{obe} publishes
+them on startup.
 
 The authentication server verifies the platform tokens that IW4x issues. Each
 IW4x installation signs its tokens with its own key and \c{obe} derives the
@@ -287,6 +294,7 @@ next step), so for this run we let the system choose the ports:
 $ sudo -u obe /opt/obe/bin/obe                     \
   --options-file /etc/obe/obe.options              \
   --auth-port 0 --lsg-port 0 --bandwidth-port 0
+published 1 publisher file(s)
 listening on 0.0.0.0:41075 and 0.0.0.0:46261, testing bandwidth on
 0.0.0.0:51243
 ^Cshutting down
@@ -503,6 +511,9 @@ $ sudo -u obe /opt/obe/bin/obe \
 migrated database obe schema from version 1 to 2
 $ sudo systemctl start obe
 \
+
+Once started, \c{obe} publishes the playlists that the new version installs
+in place of the old ones, and the clients download them when they start.
 
 \N|The \c{--recursive} option makes \c{bpkg} upgrade and install the
 dependencies of \c{obe} as well. See

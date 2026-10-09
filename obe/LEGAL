@@ -9,3 +9,11 @@ https://github.com/build2/style
 
 They are licensed under the MIT License, copyright the build2 authors. See
 doc/style/LICENSE for the license text.
+
+The IW4x playlists in data/publisher/2010/playlists.patch2 are derived from
+the playlists of the original game, Call of Duty: Modern Warfare 2, copyright
+Activision Publishing, Inc. They are shipped for interoperability with the
+game client, which downloads and parses them as is, and the original content
+is not covered by the license of this package. The changes made by the IW4x
+authors are licensed under the same terms as the rest of this package (see
+LICENSE.md and LICENSE-EXCEPTION.md).
