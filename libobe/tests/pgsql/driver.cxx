@@ -5,7 +5,8 @@
 #include <string>
 #include <format>
 #include <random>
-#include <utility>   // move()
+#include <concepts>  // convertible_to
+#include <utility>   // move(), forward()
 #include <iostream>
 #include <exception>
 
@@ -21,6 +22,28 @@
 
 using namespace std;
 using namespace obe;
+
+// The ODB database or connection that executes the SQL statements.
+//
+template <typename T>
+concept statement_executor = requires (T& x, const string& s)
+{
+  {x.execute (s)} -> convertible_to<unsigned long long>;
+};
+
+// Execute the SQL statement formatted from the arguments and return the
+// number of rows it affected or, for SELECT, produced.
+//
+// Note that the arguments are formatted into the statement verbatim (they
+// are not quoted or escaped), which is fine for the values we control.
+//
+template <statement_executor E, typename... A>
+  requires formattable_arguments<A...>
+static unsigned long long
+execute (E& e, format_string<A...> f, A&&... a)
+{
+  return e.execute (format (f, forward<A> (a)...));
+}
 
 // The test database, created in the PostgreSQL server of the maintenance
 // database on construction and dropped on destruction.
@@ -39,15 +62,14 @@ public:
     random_device rd;
     name_ = format ("obe_test_{:08x}{:08x}", rd (), rd ());
 
-    admin_.connection ()->execute ("CREATE DATABASE " + name_);
+    execute (*admin_.connection (), "CREATE DATABASE {}", name_);
   }
 
   ~test_database ()
   {
     try
     {
-      admin_.connection ()->execute (
-        "DROP DATABASE " + name_ + " WITH (FORCE)");
+      execute (*admin_.connection (), "DROP DATABASE {} WITH (FORCE)", name_);
     }
     catch (const std::exception& e)
     {
@@ -123,23 +145,24 @@ try
     odb::transaction t (db.begin ());
 
     println ("tables {}",
-             db.execute ("SELECT 1 FROM pg_tables "
-                         "WHERE schemaname = 'public'"));
+             execute (db,
+                      "SELECT 1 FROM pg_tables WHERE schemaname = 'public'"));
 
-    println ("versions {}", db.execute ("SELECT 1 FROM schema_version"));
+    println ("versions {}", execute (db, "SELECT 1 FROM schema_version"));
 
     // Note that our schema is the default one, which has the empty name.
     //
     println ("version obe {}",
-             db.execute ("SELECT 1 FROM schema_version WHERE name = ''"));
+             execute (db,
+                      "SELECT 1 FROM schema_version WHERE name = ''"));
 
     for (const char* n: {"file", "performance", "schema_version"})
       println ("table {} {}",
                n,
-               db.execute (format ("SELECT 1 FROM pg_tables "
-                                   "WHERE schemaname = 'public' AND "
-                                   "tablename = '{}'",
-                                   n)));
+               execute (db,
+                        "SELECT 1 FROM pg_tables "
+                        "WHERE schemaname = 'public' AND tablename = '{}'",
+                        n));
 
     t.commit ();
   }
@@ -150,8 +173,9 @@ try
   {
     odb::pgsql::database db ("", "", tdb.name ());
     odb::transaction t (db.begin ());
-    db.execute ("UPDATE schema_version SET version = version + 1 "
-                "WHERE name = ''");
+    execute (db,
+             "UPDATE schema_version SET version = version + 1 "
+             "WHERE name = ''");
     t.commit ();
   }
 
