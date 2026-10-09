@@ -100,12 +100,12 @@ $ git clone https://github.com/iw4x-x64-stage/obe.git
 
 \li|\b{1. Set Up PostgreSQL}\n
 
-The \c{etc/private/postgresql/obe-postgresql-setup} script installs and
+The \c{obe/etc/private/postgresql/obe-postgresql-setup} script installs and
 starts the PostgreSQL server from the distribution's packages and creates the
 \c{obe} database owned by the \c{obe} role:
 
 \
-$ obe/etc/private/postgresql/obe-postgresql-setup
+$ obe/obe/etc/private/postgresql/obe-postgresql-setup
 set up PostgreSQL database 'obe' owned by role 'obe'? [y/n]: y
 + sudo dnf install --assumeyes postgresql-server
 ...
@@ -424,7 +424,7 @@ create an empty one, restore the backup into it, and start \c{obe} again:
 \
 $ sudo systemctl stop obe
 $ sudo -u postgres dropdb obe
-$ obe/etc/private/postgresql/obe-postgresql-setup --yes
+$ obe/obe/etc/private/postgresql/obe-postgresql-setup --yes
 $ sudo -u obe pg_restore --dbname=obe \
   /var/lib/obe/obe-2026-10-08.dump
 $ sudo systemctl start obe
@@ -561,7 +561,7 @@ user may create databases. The setup script grants this permission to the
 user we name with \c{--test-role}:
 
 \
-$ etc/private/postgresql/obe-postgresql-setup --test-role \"$USER\"
+$ obe/etc/private/postgresql/obe-postgresql-setup --test-role \"$USER\"
 $ bdep test config.libobe.test.pgsql=postgres
 \
 
