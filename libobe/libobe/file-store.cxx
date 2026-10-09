@@ -43,6 +43,28 @@ namespace obe
   {
   }
 
+  awaitable<file_header>
+  publish (file_store& s, title_id t, string n, bytes d, timestamp now)
+  {
+    LIBOBE_PRE (!n.empty () && n.size () <= file_header::max_name);
+
+    // Note that the client never reads the flags back (see file_header).
+    //
+    const optional<file_header> h (
+      co_await s.upload (t,
+                         publisher,
+                         move (n),
+                         {false, false},
+                         move (d),
+                         now,
+                         numeric_limits<size_t>::max ()));
+
+    // Uploading without a limit always succeeds.
+    //
+    LIBOBE_ASSERT (h);
+    co_return *h;
+  }
+
   // memory_file_store
   //
   awaitable<optional<stored_file>> memory_file_store::

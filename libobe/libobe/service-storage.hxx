@@ -48,7 +48,8 @@ namespace obe
   //           uint32 count followed by, for each file, uint32 size and the
   //           header.
   //
-  // 8 list    As above but without the owner, which is the client.
+  // 8 list    As above but without the owner, listing the title's
+  //           publisher files (see publisher).
   //
   // The title keeps the player's stats in a file (mpdata): it lists the
   // player's own files (operation 7 with its own id), gets the stats file by
@@ -56,10 +57,18 @@ namespace obe
   // the first time, keeping the returned id, and updates them by that id
   // after that.
   //
+  // The title also fetches its playlists from a publisher file
+  // (playlists.patch2, the playlistFilename dvar): it lists the publisher
+  // files (operation 8), gets the file with that name by id, and parses
+  // it. The client accepts playlists of up to 128KB, but the reply has to
+  // fit its receive buffer (see lsg_server), which leaves a bit less than
+  // 64KB. If there is no such file, the title has no playlists and retries
+  // with a backoff.
+  //
   // Note that the title never accesses other users' files, so the users can
-  // only get and list their own. Note also that the title treats any error
-  // (other than no stats file in the listing) as fatal and drops to the main
-  // menu.
+  // only get and list their own and the publisher files. Note also that the
+  // title treats any error (other than no stats file in the listing) as
+  // fatal and drops to the main menu.
   //
   class LIBOBE_SYMEXPORT storage_service: public service
   {

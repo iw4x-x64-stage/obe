@@ -230,6 +230,9 @@ print (span<const uint8_t> d, const string& prefix, vector<bytes>& blobs)
 // The line 'disconnect <user> <connection>' detaches the connection and
 // notifies the service.
 //
+// The line 'publish <name> <hex>' publishes the title's publisher file and
+// prints its id as 'published <id>'.
+//
 int
 main (int argc, char* argv[])
 {
@@ -455,6 +458,24 @@ main (int argc, char* argv[])
 
         if (is.fail ())
           throw invalid_argument ("invalid line '" + l + "'");
+      }
+      else if (k == "publish")
+      {
+        flush ();
+
+        string n, h;
+        is >> n >> h;
+
+        if (is.fail () || n.empty ())
+          throw invalid_argument ("invalid line '" + l + "'");
+
+        file_header r;
+        await ([&files, &r, n, d = parse_hex (h)] () -> awaitable<void>
+        {
+          r = co_await publish (*files, title, n, d, system_clock::now ());
+        } ());
+
+        println ("published {}", to_underlying (r.id));
       }
       else if (l.empty ())
         flush ();

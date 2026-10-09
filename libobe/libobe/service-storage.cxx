@@ -59,7 +59,7 @@ namespace obe
       if (in.peek () == bit_type::string)
         prefix = in.next_string (file_header::max_name);
 
-      if (owner != id.user)
+      if (owner != id.user && owner != publisher)
         throw task_error (lsg_error::permission_denied,
                           "files of user {} not accessible",
                           to_underlying (owner));
@@ -79,6 +79,14 @@ namespace obe
         h.serialize (out);
       }
     };
+
+    // The publisher files are only published by the server (see publish()),
+    // so a user with the publisher's id (which no XUID is) cannot write.
+    //
+    if ((op == 1 || op == 2) && id.user == publisher)
+      throw task_error (lsg_error::permission_denied,
+                        "user {} cannot store files",
+                        to_underlying (id.user));
 
     switch (op)
     {
@@ -147,7 +155,8 @@ namespace obe
 
         const optional<stored_file> sf (co_await store_.find (id.title, f));
 
-        if (!sf || sf->header.owner != id.user)
+        if (!sf || (sf->header.owner != id.user &&
+                    sf->header.owner != publisher))
           throw task_error (lsg_error::no_file,
                             "no file {}", to_underlying (f));
 
@@ -164,7 +173,7 @@ namespace obe
       }
       case 8:
       {
-        headers (co_await list (id.user));
+        headers (co_await list (publisher));
         break;
       }
       default:

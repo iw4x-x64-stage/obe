@@ -67,6 +67,12 @@ namespace obe
     bytes       data;
   };
 
+  // The owner of the title's publisher files, the files that the title
+  // offers to every user (for example, the playlists). No user has this id
+  // (the user ids are XUIDs).
+  //
+  inline constexpr user_id publisher {0};
+
   // The file storage (for the storage service).
   //
   // The files belong to a title and an owner and are identified by the id
@@ -131,6 +137,15 @@ namespace obe
     file_store (const file_store&) = delete;
     file_store& operator= (const file_store&) = delete;
   };
+
+  // Publish the file as one of the title's publisher files, replacing the
+  // contents of the publisher file with the same name, if any. Return its
+  // header.
+  //
+  // The name must not be empty or longer than file_header::max_name.
+  //
+  LIBOBE_SYMEXPORT awaitable<file_header>
+  publish (file_store&, title_id, string name, bytes data, timestamp now);
 
   // The file store that keeps the files in memory, for development and
   // testing.

@@ -108,6 +108,83 @@
   error 1001: files of user 1 not accessible
   EOO
 
+  : publisher
+  : Test listing and getting the publisher files and that they are read-only
+  :
+  $* <<EOI >>~/EOO/
+  publish playlists.patch2 0102
+  publish playlists.patch2 030405
+
+  task 1 1 1
+  uint8 0
+  bool false
+  string mpdata
+  bool true
+  blob 06
+
+  task 2 2 8
+  uint8 0
+  uint32 0
+  uint16 100
+
+  task 2 2 5
+  uint8 0
+  uint64 1
+
+  task 2 2 7
+  uint8 0
+  uint64 0
+  uint32 0
+  uint16 100
+  string playlists
+
+  task 2 2 2
+  uint8 0
+  uint64 1
+  blob 07
+
+  task 0 3 1
+  uint8 0
+  bool false
+  string playlists.patch2
+  bool true
+  blob 07
+  EOI
+  published 1
+  published 1
+  ok
+  uint64 2
+  ok
+  uint32 1
+  uint32 3
+  uint64 1
+  /uint32 \d+/{2}
+  bool false
+  bool false
+  uint64 0
+  string playlists.patch2
+  ok
+  uint32 3
+  uint64 1
+  /uint32 \d+/{2}
+  bool false
+  bool false
+  uint64 0
+  string playlists.patch2
+  blob 030405
+  ok
+  uint32 1
+  uint32 3
+  uint64 1
+  /uint32 \d+/{2}
+  bool false
+  bool false
+  uint64 0
+  string playlists.patch2
+  error 1001: file 1 is owned by user 0
+  error 1001: user 0 cannot store files
+  EOO
+
   : limits
   : Test the file size and count limits
   :
