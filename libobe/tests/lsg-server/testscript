@@ -1,0 +1,89 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: encrypted
+: Test the handshake and the task replies over an encrypted connection
+:
+$* encrypted >>EOO 2>>~%EOE%
+encrypted connection id 1
+encrypted task reply tx 1 error 0 op 1 value 42
+encrypted task reply tx 2 error 101
+encrypted task reply tx 3 error 108
+encrypted task reply tx 4 error 106
+encrypted service reply tx 5 data 3 2 1
+disconnect 1
+EOO
+%.+: info: user 3 connected as 1%
+%.+: warning: task 2 failed: operation 2 denied \(access denied\)%
+%.+: warning: task 3 failed: unknown service 99 \(service not available\)%
+%.+: warning: task 4 failed: expected uint32 instead of string%
+EOE
+
+: plain
+: Test a connection without encryption
+:
+$* plain >>EOO 2>>~%EOE%
+plain connection id 1
+plain task reply tx 1 error 0 op 1 value 42
+disconnect 1
+EOO
+%.+: info: user 3 connected as 1%
+EOE
+
+: push
+: Test pushing a message to the client
+:
+$* push >>EOO 2>>~%EOE%
+encrypted connection id 1
+encrypted push value 7
+encrypted task reply tx 1 error 0 op 1 value 1
+disconnect 1
+EOO
+%.+: info: user 3 connected as 1%
+EOE
+
+: handshake
+: Test the handshake failures
+:
+{{
+  $* expired >>EOO 2>>~%EOE% : expired
+  plain error 101
+  closed
+  EOO
+  %.+: warning: handshake failed: server ticket expired \(access denied\)%
+  EOE
+
+  $* title >>EOO 2>>~%EOE% : title
+  plain error 101
+  closed
+  EOO
+  %.+: warning: handshake failed: server ticket is for title 1234 instead of 4321 \(access denied\)%
+  EOE
+
+  $* forged >>EOO 2>>~%EOE% : forged
+  plain error 101
+  closed
+  EOO
+  %.+: warning: handshake failed: server ticket authentication failed \(access denied\)%
+  EOE
+
+  $* version >>EOO 2>>~%EOE% : version
+  closed
+  EOO
+  %.+: warning: invalid prelude: unsupported protocol version 179%
+  EOE
+}}
+
+: idle
+: Test the keepalive and the idle timeout
+:
+$* idle >>EOO 2>>~%EOE%
+encrypted connection id 1
+keepalive
+keepalive
+disconnect 1
+closed
+EOO
+%.+: info: user 3 connected as 1%
+%.+: info: connection idle, closing%
+EOE
