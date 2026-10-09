@@ -4,6 +4,8 @@
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
 
+import intf_libs = libcrypto%lib{crypto}
+
 lib{obe}: {hxx ixx txx cxx}{** -version} hxx{version} $impl_libs $intf_libs
 
 hxx{version}: in{version} $src_root/manifest
@@ -43,3 +45,7 @@ else
   install         = include/libobe/
   install.subdirs = true
 }
+
+# Private headers.
+#
+hxx{openssl}@./: install = false
