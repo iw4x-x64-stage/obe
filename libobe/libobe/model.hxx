@@ -4,6 +4,7 @@
 #pragma once
 
 #include <compare> // strong_ordering
+#include <utility> // to_underlying()
 
 #include <libobe/types.hxx>
 
@@ -17,11 +18,6 @@
 // The classes mirror the store interfaces' types rather than being them so
 // that the database representation is spelled out here and can evolve on
 // its own. They are private to the library.
-//
-// Note that PostgreSQL has no unsigned integers so the unsigned values are
-// stored in the signed columns of the same size, with the most significant
-// bit in the sign bit (see the ODB manual, PostgreSQL Type Mapping). This
-// is lossless and the ids are only compared for equality.
 
 // The database schema versions.
 //
@@ -41,6 +37,30 @@
 
 #pragma db model version(LIBOBE_SCHEMA_VERSION_BASE, LIBOBE_SCHEMA_VERSION)
 
+// The value types stored as integers (see the ODB manual, C++ Type Mapping
+// Pragmas).
+//
+// The identifiers are stored as their values. Note that PostgreSQL has no
+// unsigned integers so they end up in the signed columns of the same size,
+// with the most significant bit in the sign bit (see the ODB manual,
+// PostgreSQL Type Mapping). This is lossless and the identifiers are only
+// compared for equality.
+//
+#pragma db map type(obe::title_id)           \
+               as(std::uint32_t)             \
+               to(std::to_underlying (?))    \
+               from(obe::title_id {(?)})
+
+#pragma db map type(obe::user_id)            \
+               as(std::uint64_t)             \
+               to(std::to_underlying (?))    \
+               from(obe::user_id {(?)})
+
+#pragma db map type(obe::file_id)            \
+               as(std::uint64_t)             \
+               to(std::to_underlying (?))    \
+               from(obe::file_id {(?)})
+
 namespace obe
 {
   #pragma db value(bytes) type("BYTEA")
@@ -55,10 +75,10 @@ namespace obe
   {
   public:
     #pragma db id auto
-    uint64_t id;
+    file_id  id;
 
-    uint32_t title;
-    uint64_t owner;
+    title_id title;
+    user_id  owner;
     string   name;
 
     bool     flag1;
@@ -85,9 +105,9 @@ namespace obe
   #pragma db view object(file_record)
   struct file_record_header
   {
-    uint64_t id;
-    uint32_t title;
-    uint64_t owner;
+    file_id  id;
+    title_id title;
+    user_id  owner;
     string   name;
     bool     flag1;
     bool     flag2;
@@ -111,9 +131,9 @@ namespace obe
   #pragma db value
   struct performance_key
   {
-    uint32_t title;
+    title_id title;
     uint32_t kind;
-    uint64_t user;
+    user_id  user;
 
     friend std::strong_ordering
     operator<=> (const performance_key&, const performance_key&) = default;

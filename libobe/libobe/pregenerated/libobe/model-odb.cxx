@@ -107,12 +107,20 @@ namespace odb
 
     id_type id;
     {
+      ::uint64_t vt;
+
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        id,
+        vt,
         i.id_value,
         i.id_null);
+
+      // From model.hxx:59:12
+      id = obe::file_id 
+      {
+         (vt) 
+      };
     }
 
     return id;
@@ -127,12 +135,20 @@ namespace odb
 
     id_type id;
     {
+      ::uint64_t vt;
+
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        id,
+        vt,
         i.id_value,
         i.id_null);
+
+      // From model.hxx:59:12
+      id = obe::file_id 
+      {
+         (vt) 
+      };
     }
 
     return id;
@@ -312,30 +328,38 @@ namespace odb
     // title
     //
     {
-      ::uint32_t const& v =
+      ::obe::title_id const& v =
         o.title;
 
       bool is_null (false);
 
+      // From model.hxx:49:12
+      ::uint32_t const& vt =
+        std::to_underlying (v);
+
       pgsql::value_traits<
           ::uint32_t,
           pgsql::id_integer >::set_image (
-        i.title_value, is_null, v);
+        i.title_value, is_null, vt);
       i.title_null = is_null;
     }
 
     // owner
     //
     {
-      ::uint64_t const& v =
+      ::obe::user_id const& v =
         o.owner;
 
       bool is_null (false);
 
+      // From model.hxx:54:12
+      ::uint64_t const& vt =
+        std::to_underlying (v);
+
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_image (
-        i.owner_value, is_null, v);
+        i.owner_value, is_null, vt);
       i.owner_null = is_null;
     }
 
@@ -473,43 +497,67 @@ namespace odb
     // id
     //
     {
-      ::uint64_t& v =
+      ::obe::file_id& v =
         o.id;
+
+      ::uint64_t vt;
 
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.id_value,
         i.id_null);
+
+      // From model.hxx:59:12
+      v = obe::file_id 
+      {
+         (vt) 
+      };
     }
 
     // title
     //
     {
-      ::uint32_t& v =
+      ::obe::title_id& v =
         o.title;
+
+      ::uint32_t vt;
 
       pgsql::value_traits<
           ::uint32_t,
           pgsql::id_integer >::set_value (
-        v,
+        vt,
         i.title_value,
         i.title_null);
+
+      // From model.hxx:49:12
+      v = obe::title_id 
+      {
+         (vt) 
+      };
     }
 
     // owner
     //
     {
-      ::uint64_t& v =
+      ::obe::user_id& v =
         o.owner;
+
+      ::uint64_t vt;
 
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.owner_value,
         i.owner_null);
+
+      // From model.hxx:54:12
+      v = obe::user_id 
+      {
+         (vt) 
+      };
     }
 
     // name
@@ -619,10 +667,14 @@ namespace odb
     {
       bool is_null (false);
 
+      // From model.hxx:59:12
+      ::uint64_t const& vt =
+        std::to_underlying (id);
+
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_image (
-        i.id_value, is_null, id);
+        i.id_value, is_null, vt);
       i.id_null = is_null;
     }
   }
@@ -1229,43 +1281,67 @@ namespace odb
     // id
     //
     {
-      ::uint64_t& v =
+      ::obe::file_id& v =
         o.id;
+
+      ::uint64_t vt;
 
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.id_value,
         i.id_null);
+
+      // From model.hxx:59:12
+      v = obe::file_id 
+      {
+         (vt) 
+      };
     }
 
     // title
     //
     {
-      ::uint32_t& v =
+      ::obe::title_id& v =
         o.title;
+
+      ::uint32_t vt;
 
       pgsql::value_traits<
           ::uint32_t,
           pgsql::id_integer >::set_value (
-        v,
+        vt,
         i.title_value,
         i.title_null);
+
+      // From model.hxx:49:12
+      v = obe::title_id 
+      {
+         (vt) 
+      };
     }
 
     // owner
     //
     {
-      ::uint64_t& v =
+      ::obe::user_id& v =
         o.owner;
+
+      ::uint64_t vt;
 
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.owner_value,
         i.owner_null);
+
+      // From model.hxx:54:12
+      v = obe::user_id 
+      {
+         (vt) 
+      };
     }
 
     // name
@@ -1636,15 +1712,19 @@ namespace odb
     // title
     //
     {
-      ::uint32_t const& v =
+      ::obe::title_id const& v =
         o.title;
 
       bool is_null (false);
 
+      // From model.hxx:49:12
+      ::uint32_t const& vt =
+        std::to_underlying (v);
+
       pgsql::value_traits<
           ::uint32_t,
           pgsql::id_integer >::set_image (
-        i.title_value, is_null, v);
+        i.title_value, is_null, vt);
       i.title_null = is_null;
     }
 
@@ -1666,15 +1746,19 @@ namespace odb
     // user
     //
     {
-      ::uint64_t const& v =
+      ::obe::user_id const& v =
         o.user;
 
       bool is_null (false);
 
+      // From model.hxx:54:12
+      ::uint64_t const& vt =
+        std::to_underlying (v);
+
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_image (
-        i.user_value, is_null, v);
+        i.user_value, is_null, vt);
       i.user_null = is_null;
     }
 
@@ -1693,15 +1777,23 @@ namespace odb
     // title
     //
     {
-      ::uint32_t& v =
+      ::obe::title_id& v =
         o.title;
+
+      ::uint32_t vt;
 
       pgsql::value_traits<
           ::uint32_t,
           pgsql::id_integer >::set_value (
-        v,
+        vt,
         i.title_value,
         i.title_null);
+
+      // From model.hxx:49:12
+      v = obe::title_id 
+      {
+         (vt) 
+      };
     }
 
     // kind
@@ -1721,15 +1813,23 @@ namespace odb
     // user
     //
     {
-      ::uint64_t& v =
+      ::obe::user_id& v =
         o.user;
+
+      ::uint64_t vt;
 
       pgsql::value_traits<
           ::uint64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.user_value,
         i.user_null);
+
+      // From model.hxx:54:12
+      v = obe::user_id 
+      {
+         (vt) 
+      };
     }
   }
 

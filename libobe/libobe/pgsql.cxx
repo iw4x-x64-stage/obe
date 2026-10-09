@@ -287,11 +287,11 @@ namespace obe
   to_header (const R& r)
   {
     file_header h;
-    h.id = file_id {r.id};
+    h.id = r.id;
     h.created = to_timestamp (r.created);
     h.modified = to_timestamp (r.modified);
     h.flags = {r.flag1, r.flag2};
-    h.owner = user_id {r.owner};
+    h.owner = r.owner;
     h.name = r.name;
     h.size = r.size;
     return h;
@@ -311,9 +311,9 @@ namespace obe
     co_return co_await database_.transactions_->execute (
       [t, i] (odb::database& db) -> optional<stored_file>
     {
-      unique_ptr<file_record> r (db.find<file_record> (to_underlying (i)));
+      unique_ptr<file_record> r (db.find<file_record> (i));
 
-      if (r == nullptr || r->title != to_underlying (t))
+      if (r == nullptr || r->title != t)
         return nullopt;
 
       return stored_file {to_header (*r), move (r->data)};
@@ -332,11 +332,11 @@ namespace obe
     {
       using query = odb::query<file_record_header>;
 
-      query q (query::title == to_underlying (t) &&
+      query q (query::title == t &&
                query::modified >= to_nanoseconds (since));
 
       if (o)
-        q = q && query::owner == to_underlying (*o);
+        q = q && query::owner == *o;
 
       if (!prefix.empty ())
         q = q && "starts_with(" + query::name + "," +
@@ -370,8 +370,8 @@ namespace obe
     {
       using query = odb::query<file_record>;
 
-      const query q (query::title == to_underlying (t) &&
-                     query::owner == to_underlying (o));
+      const query q (query::title == t &&
+                     query::owner == o);
 
       unique_ptr<file_record> r (
         db.query_one<file_record> (q && query::name == n));
@@ -387,15 +387,15 @@ namespace obe
 
         const file_record_count c (
           db.query_value<file_record_count> (
-            count_query::title == to_underlying (t) &&
-            count_query::owner == to_underlying (o)));
+            count_query::title == t &&
+            count_query::owner == o));
 
         if (c.result >= limit)
           return nullopt;
 
         r.reset (new file_record ());
-        r->title = to_underlying (t);
-        r->owner = to_underlying (o);
+        r->title = t;
+        r->owner = o;
         r->name = n;
         r->created = to_nanoseconds (now);
       }
@@ -421,9 +421,9 @@ namespace obe
     co_return co_await database_.transactions_->execute (
       [t, i, d = move (d), now] (odb::database& db) -> optional<file_header>
     {
-      unique_ptr<file_record> r (db.find<file_record> (to_underlying (i)));
+      unique_ptr<file_record> r (db.find<file_record> (i));
 
-      if (r == nullptr || r->title != to_underlying (t))
+      if (r == nullptr || r->title != t)
         return nullopt;
 
       r->modified = to_nanoseconds (now);
@@ -453,9 +453,7 @@ namespace obe
     {
       for (const performance_value& v: vs)
       {
-        const performance_key id {to_underlying (t),
-                                  k,
-                                  to_underlying (v.user)};
+        const performance_key id {t, k, v.user};
 
         if (unique_ptr<performance_record> r =
               db.find<performance_record> (id))
@@ -482,16 +480,12 @@ namespace obe
     {
       using query = odb::query<performance_record>;
 
-      vector<uint64_t> ids;
-      for (user_id u: us)
-        ids.push_back (to_underlying (u));
-
-      map<uint64_t, int64_t> vs;
+      map<user_id, int64_t> vs;
       for (const performance_record& r:
              db.query<performance_record> (
-               query::id.title == to_underlying (t) &&
-               query::id.kind == k                  &&
-               query::id.user.in_range (ids.begin (), ids.end ())))
+               query::id.title == t &&
+               query::id.kind == k  &&
+               query::id.user.in_range (us.begin (), us.end ())))
         vs.emplace (r.id.user, r.value);
 
       // Return the values in the order of the user ids.
@@ -499,7 +493,7 @@ namespace obe
       vector<performance_value> r;
       for (user_id u: us)
       {
-        if (auto i = vs.find (to_underlying (u)); i != vs.end ())
+        if (auto i = vs.find (u); i != vs.end ())
           r.emplace_back (u, i->second);
       }
 
