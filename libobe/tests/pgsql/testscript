@@ -1,0 +1,28 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# The tests of the PostgreSQL database (see config.libobe.test.pgsql).
+
+: migrate
+: Test that migrating creates only our schema, then finds it current, and
+: refuses a newer one
+:
+: The ODB schema catalog is process-wide and has the schemas of all the
+: libraries linked into the process (xle's, for example), which must be
+: neither created nor versioned with ours.
+:
+if ($pgsql != [null])
+{
+  $* $pgsql >>EOO
+  migrated 0
+  migrated 1
+  tables 3
+  versions 1
+  version obe 1
+  table file 1
+  table performance 1
+  table schema_version 1
+  schema version 2
+  refused: database schema version 2 is newer than 1
+  EOO
+}

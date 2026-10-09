@@ -1,0 +1,13 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+import libs  = libobe%lib{obe}
+
+# The driver creates and drops the test databases (see driver.cxx).
+#
+import libs += libodb-pgsql%lib{odb-pgsql}
+import libs += libodb%lib{odb}
+
+exe{driver}: {hxx ixx txx cxx}{**} $libs testscript
+
+testscript{*}: pgsql = $config.libobe.test.pgsql
