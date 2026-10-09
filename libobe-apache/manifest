@@ -1,0 +1,25 @@
+: 1
+name: libobe-apache
+version: 0.1.0-a.0.z
+type: lib
+language: c++
+project: obe
+summary: Apache status dashboard for IW4x projects and infrastructure.
+license: other: GPL-3.0-only with IW4x Linking Exception 1.1
+topics: development, Demonware, Apache, dashboard
+description-file: README.md
+changes-file: NEWS
+url: https://iw4x.io/projects/obe/
+doc-url: https://iw4x.io/projects/obe/doc/
+src-url: https://github.com/iw4x-x64-stage/obe
+email: wroy@proton.me
+build-error-email: wroy@proton.me
+requires: apache2 ; Including development files (httpd.h header, etc).
+depends: * build2 >= 0.18.0
+depends: * bpkg >= 0.18.0
+depends: libobe == $
+
+# The Apache module is loaded into the system httpd and so builds against
+# its headers, which only the Linux configurations provide.
+#
+builds: default : &linux ; Requires the system Apache development files.
