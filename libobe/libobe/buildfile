@@ -4,10 +4,15 @@
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
 
+# The servers expose Asio (awaitables, the io_context, the TLS context) in
+# their interfaces.
+#
 import intf_libs  = libboost-asio%lib{boost_asio}
+import intf_libs += libssl%lib{ssl}
 import intf_libs += libcrypto%lib{crypto}
 
-import impl_libs = libboost-json%lib{boost_json}
+import impl_libs  = libboost-json%lib{boost_json}
+import impl_libs += libboost-beast%lib{boost_beast}
 
 lib{obe}: {hxx ixx txx cxx}{** -version} hxx{version} $impl_libs $intf_libs
 
