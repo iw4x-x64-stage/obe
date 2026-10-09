@@ -28,3 +28,8 @@
 # SPDX header (see libobe/libobe/model.hxx).
 #
 libobe/libobe/model.xml -spdx linguist-generated
+
+# The documentation style sheets come from the build2 style repository with
+# their own license notice (see obe/LEGAL).
+#
+obe/doc/style/** -spdx

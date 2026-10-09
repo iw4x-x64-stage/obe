@@ -1,0 +1,23 @@
+/* file      : p-code-box.css
+ * license   : MIT; see accompanying LICENSE file
+ */
+
+/* This is the pre-like paragraph produced by CLI for code-only fragments. */
+
+/* Note: see also pre-box.css. */
+
+.code
+{
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.2em;
+  padding: .8em .4em .8em .4em;
+  margin: 2em -.4em 2em -.4em; /* Use margins of #content. */
+}
+
+/* Undo code-box.css inside .code. */
+.code code
+{
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+}

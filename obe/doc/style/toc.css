@@ -1,0 +1,49 @@
+/* file      : toc.css
+ * license   : MIT; see accompanying LICENSE file
+ */
+
+table.toc
+{
+  border-style      : none;
+  border-collapse   : separate;
+  border-spacing    : 0;
+
+  margin            : 0.2em 0 0.2em 0;
+  padding           : 0 0 0 0;
+}
+
+table.toc tr
+{
+  padding           : 0 0 0 0;
+  margin            : 0 0 0 0;
+}
+
+table.toc * td, table.toc * th {
+  border-style      : none;
+  margin            : 0 0 0 0;
+  vertical-align    : top;
+}
+
+table.toc * th
+{
+  font-weight       : normal;
+  padding           : 0 0.8em 0 0;
+  text-align        : left;
+  white-space       : nowrap;
+}
+
+table.toc * table.toc th
+{
+  padding-left      : 1em;
+}
+
+table.toc * td
+{
+  padding           : 0 0 0 0;
+  text-align        : left;
+}
+
+table.toc * td.preface
+{
+  padding-left      : 1.35em;
+}

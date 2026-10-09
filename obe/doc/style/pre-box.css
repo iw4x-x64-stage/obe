@@ -1,0 +1,13 @@
+/* file      : pre-box.css
+ * license   : MIT; see accompanying LICENSE file
+ */
+
+/* Note: see also p-code-box.css. */
+
+pre
+{
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.2em;
+  padding: .8em .4em .8em .4em;
+  margin: 2em -.4em 2em -.4em; /* Use margins of #content. */
+}

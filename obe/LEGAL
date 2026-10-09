@@ -1,0 +1,11 @@
+This file contains additional (to the LICENSE.md and LICENSE-EXCEPTION.md
+files) notes and details on the copyright and/or license for the files in this
+package.
+
+The style sheets in doc/style/ come unmodified from the build2 style
+repository, revision 05646557e84ff39240be24af6bba3376db6da697:
+
+https://github.com/build2/style
+
+They are licensed under the MIT License, copyright the build2 authors. See
+doc/style/LICENSE for the license text.

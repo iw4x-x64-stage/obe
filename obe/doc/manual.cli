@@ -1,0 +1,617 @@
+// Copyright (c) the IW4x authors (see the AUTHORS file).
+// SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+"\name=obe-manual"
+"\title=Manual"
+
+// NOTES
+//
+// - Maximum <pre> line is 70 characters.
+//
+
+"
+\h0#preface|Preface|
+
+This document describes how to deploy \c{obe}, IW4x Demonware emulator,
+and how to keep a deployment running across \c{obe} upgrades. For the
+command line interface run \c{obe\ --help}.
+
+\h1#intro|Introduction|
+
+The game connects to Demonware services at three endpoints and \c{obe}
+serves all of them from a single process:
+
+\dl|
+
+\li|\b{TCP port 443}
+
+The authentication server. The client sends its platform token over HTTPS
+and receives a ticket for the lobby service gateway.|
+
+\li|\b{TCP port 3074}
+
+The lobby service gateway. The client connects with its ticket and keeps the
+connection for the whole session. All the services the game uses during play
+are behind the gateway.|
+
+\li|\b{UDP port 3075}
+
+The bandwidth test. Right after connecting to the gateway the client sends a
+burst of packets to this port, and \c{obe} reports the measured upload rate
+back to it. The client uses the rate to decide whether it may host a
+lobby.||
+
+The ports are the defaults and the options that change them are listed in
+\c{obe\ --help}.
+
+The state that has to survive a restart is the files the clients store (their
+settings, for example) and the performance values they report. \c{obe} keeps
+it in a PostgreSQL database. Without a database \c{obe} keeps it in memory,
+which is only suitable for development.
+
+The rest of the state lives in memory. The matchmaking sessions and the
+bandwidth tests belong to the gateway connections and end with them. The user
+names that the messaging service shows to the recipients are learned when the
+users authenticate, so after a restart a user that reconnects with an earlier
+ticket has no name until the next authentication.
+
+\N|Since this state is per process, the clients of one \c{obe} process cannot
+see the matchmaking sessions hosted on another. A deployment that serves one
+community of players is therefore a single process.|
+
+The examples in this document assume a Fedora or Debian-based Linux system
+with \c{systemd}, and use the following locations:
+
+\
+/opt/obe/                       installation
+/etc/obe/obe.options            options file
+/etc/obe/tls/cert.pem           TLS certificate
+/etc/obe/tls/key.pem            TLS private key
+/etc/obe/ticket.key             ticket sealing key
+/var/lib/obe/                   home of the obe user
+\
+
+You can use other locations, as long as you adjust the commands accordingly.
+
+\h1#install|Installation|
+
+Before we begin, make sure the following is available on the host:
+
+\ul|
+
+\li|GCC 16 or later, since \c{obe} is written in C++26.|
+
+\li|The \c{build2} toolchain 0.18.0 or later (see the
+\l{https://build2.org/install.xhtml Installation Instructions}).|
+
+\li|An account with \c{sudo} access.||
+
+The remaining dependencies are \c{build2} packages and are built from source
+along with \c{obe}.
+
+We also need a copy of the \c{obe} repository for its setup script:
+
+\
+$ git clone https://github.com/iw4x-x64-stage/obe.git
+\
+
+\dl|
+
+\li|\b{1. Set Up PostgreSQL}\n
+
+The \c{etc/private/postgresql/obe-postgresql-setup} script installs and
+starts the PostgreSQL server from the distribution's packages and creates the
+\c{obe} database owned by the \c{obe} role:
+
+\
+$ obe/etc/private/postgresql/obe-postgresql-setup
+set up PostgreSQL database 'obe' owned by role 'obe'? [y/n]: y
++ sudo dnf install --assumeyes postgresql-server
+...
++ psql: CREATE ROLE obe LOGIN
++ psql: CREATE DATABASE obe OWNER obe TEMPLATE template0 ...
+database 'obe' is ready
+  info: run 'obe --db-name obe --migrate' as user 'obe' to create
+  its schema
+\
+
+The \c{obe} role authenticates with the \c{peer} method, which is the
+PostgreSQL default for the local UNIX-domain socket: the system user that
+runs \c{obe} has the name of the role and needs no password.
+
+The script skips the steps that are already done, so it is safe to run it
+again. It can also print its plan without doing anything (\c{--print-only})
+and use other names (\c{--database} and \c{--role}). See the comments at the
+beginning of the script for details.
+
+\N|On other distributions we install and start the PostgreSQL server with the
+distribution's tools and then execute the following statements as the
+PostgreSQL superuser:
+
+\
+CREATE ROLE obe LOGIN;
+CREATE DATABASE obe OWNER obe TEMPLATE template0 ENCODING 'UTF8';
+\
+
+|
+
+|
+
+\li|\n\b{2. Build and Install}\n
+
+We build \c{obe} in a \c{bpkg} build configuration. You will want to keep
+this configuration around since it is also what we upgrade \c{obe} with (see
+\l{#upgrade Upgrading}). In this guide we use \c{~/obe-build/} as the
+configuration directory:
+
+\
+$ bpkg create -d ~/obe-build cc     \
+  config.cxx=g++                    \
+  config.cc.coptions=-O2            \
+  config.bin.rpath=/opt/obe/lib     \
+  config.install.root=/opt/obe      \
+  config.install.sudo=sudo
+
+$ cd ~/obe-build
+$ bpkg build obe@https://github.com/iw4x-x64-stage/obe.git#main
+$ bpkg install --all --recursive
+\
+
+The \c{config.bin.rpath} value embeds the library directory into the
+executable so that it finds the shared libraries installed next to it, and
+\c{--recursive} installs these libraries along with \c{obe}. Let's make sure
+the result runs:
+
+\
+$ /opt/obe/bin/obe --version
+obe 0.1.0
+libobe 0.1.0
+...
+\
+
+|
+
+\li|\n\b{3. Create System User}\n
+
+\c{obe} runs as an unprivileged system user with the name of its database
+role:
+
+\
+$ sudo useradd --system --user-group --create-home \
+  --home-dir /var/lib/obe --shell /usr/sbin/nologin obe
+\
+
+|
+
+\li|\n\b{4. Create Keys}\n
+
+The authentication server needs a TLS certificate and its private key in the
+PEM format. IW4x client determines which certificates it accepts, so
+consult its documentation for the production certificate. For a test
+deployment we can generate a self-signed one:
+
+\
+$ sudo mkdir -p /etc/obe/tls
+$ sudo openssl req -x509 -newkey rsa:2048 -noenc -days 365 \
+  -subj /CN=obe.example.org                                \
+  -keyout /etc/obe/tls/key.pem -out /etc/obe/tls/cert.pem
+\
+
+The authentication server seals the tickets with a 32-byte key and the gateway
+opens them with the same key. If the key comes from a file, then the tickets
+stay valid across restarts and the reconnecting clients skip the
+authentication:
+
+\
+$ sudo sh -c 'head -c 32 /dev/urandom >/etc/obe/ticket.key'
+\
+
+Both keys are secrets readable by \c{root} and the \c{obe} group only:
+
+\
+$ sudo chown root:obe /etc/obe/tls/key.pem /etc/obe/ticket.key
+$ sudo chmod 640 /etc/obe/tls/key.pem /etc/obe/ticket.key
+\
+
+\N|Without \c{--ticket-key} \c{obe} generates a random key on startup and
+every client authenticates again after a restart.|
+
+|
+
+\li|\n\b{5. Write Options File}\n
+
+\c{obe} reads its options from the file that we pass with
+\c{--options-file}. Each option is on its own line, optionally followed by a
+space or an equal sign and the value, and the lines starting with \c{#} are
+comments. Let's create \c{/etc/obe/obe.options} with the following contents:
+
+\
+# The obe options (see obe --help for details).
+#
+--tls-certificate /etc/obe/tls/cert.pem
+--tls-key         /etc/obe/tls/key.pem
+--ticket-key      /etc/obe/ticket.key
+--db-name         obe
+--verbose         2
+
+--insecure-authentication
+\
+
+The \c{--insecure-authentication} option is currently the only way to
+authenticate the clients and \c{obe} refuses to start without it. It accepts
+any platform token and derives the user identity from the token itself, so
+anyone who presents the same token is the same user.
+
+The clients send their bandwidth test packets to the address they reached the
+gateway at and to the port \c{obe} receives them on. If the server is behind
+NAT, then we specify the public address, as well as the public port if the
+forwarding changes it:
+
+\
+--bandwidth-public-address 203.0.113.7
+--bandwidth-public-port    3075
+\
+
+\N|A client whose packets don't arrive keeps its initial upload rate, which
+is enough to host the largest lobby, and the host migration then picks the
+hosts without the measurement.|
+
+|
+
+\li|\n\b{6. Create Database Schema}\n
+
+\c{obe} creates its database schema when run with \c{--migrate}, which we do
+as the \c{obe} user:
+
+\
+$ sudo -u obe /opt/obe/bin/obe \
+  --options-file /etc/obe/obe.options --migrate -v
+created database obe schema version 1
+\
+
+With \c{--migrate} \c{obe} only needs the database options and exits once
+the schema is current. The same command migrates the schema after an upgrade (see
+\l{#upgrade-schema Migrating Database Schema}).
+
+Now we can check the configuration by running \c{obe} in the foreground.
+Binding to port 443 requires a privilege that only the service gets (see the
+next step), so for this run we let the system choose the ports:
+
+\
+$ sudo -u obe /opt/obe/bin/obe                     \
+  --options-file /etc/obe/obe.options              \
+  --auth-port 0 --lsg-port 0 --bandwidth-port 0
+warning: accepting any platform token (insecure authentication)
+listening on 0.0.0.0:41075 and 0.0.0.0:46261, testing bandwidth on
+0.0.0.0:51243
+^Cshutting down
+\
+
+|
+
+\li|\n\b{7. Install systemd Service}\n
+
+The service runs \c{obe} as the \c{obe} user with the capability to bind to
+port 443 and restarts it if it fails. We save the following unit as
+\c{/etc/systemd/system/obe.service}:
+
+\
+[Unit]
+Description=IW4x Demonware emulator
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=exec
+User=obe
+Group=obe
+ExecStart=/opt/obe/bin/obe --options-file /etc/obe/obe.options
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+\
+
+\N|If PostgreSQL runs on the same host, then add
+\c{Requires=postgresql.service} to the \c{[Unit]} section, which stops
+\c{obe} whenever PostgreSQL stops.|
+
+Then we enable and start the service:
+
+\
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable --now obe
+$ systemctl status obe
+\
+
+|
+
+\li|\n\b{8. Open Firewall Ports}\n
+
+Finally, we open the three ports. With \c{firewalld}, the Fedora default:
+
+\
+$ sudo firewall-cmd --permanent --add-port=443/tcp \
+  --add-port=3074/tcp --add-port=3075/udp
+$ sudo firewall-cmd --reload
+\
+
+With \c{ufw}, common on Ubuntu:
+
+\
+$ sudo ufw allow 443/tcp
+$ sudo ufw allow 3074/tcp
+$ sudo ufw allow 3075/udp
+\
+
+||
+
+\h1#operation|Operation|
+
+\h#operation-diagnostics|Diagnostics|
+
+\c{obe} writes its diagnostics to \c{stderr} and \c{systemd} sends them to the
+journal, where we can follow them:
+
+\
+$ journalctl -u obe -f
+\
+
+The \c{--verbose} option sets the verbosity from 0 to 3. Level 0 prints the
+errors, and each next level adds a kind of message: warnings at 1 (the
+default), informational messages at 2, and trace messages at 3. The \c{-q},
+\c{-v}, and \c{-V} options are the shortcuts for levels 0, 2, and 3.
+
+The gateway prints its own diagnostics at any verbosity. Each line starts with
+the client's endpoint and the most common ones look like this:
+
+\
+192.0.2.10:52144: info: user 1234 connected as 1
+192.0.2.10:52144: warning: task 9 failed: database error: ...
+(service not available)
+\
+
+A failed task means the client received an error reply, which the game often
+treats as fatal. On a storage error, for example, it drops the player to the
+main menu. The warnings that call for our attention are the database errors,
+which are discussed in the next section, and the protocol errors, which mean
+a client sent something \c{obe} doesn't understand.
+
+\h#operation-database|Database|
+
+Every database operation runs in a serializable transaction. An operation that
+fails with a recoverable error, such as a serialization failure or a lost
+connection, is retried after a growing delay, up to \c{--db-retry} times (10
+by default). If the operation still fails, then the task fails with
+\c{service not available} and \c{obe} goes on serving. So while PostgreSQL is
+down or restarting, only the tasks that need the database fail.
+
+\c{obe} opens up to \c{--db-max-connections} connections (5 by default) and
+performs the operations on as many threads. Together with the other clients of
+the server, they have to fit into the server's \c{max_connections} (100 by
+default).
+
+PostgreSQL vacuums and analyzes the tables on its own (autovacuum is enabled
+by default), so the database needs no regular maintenance besides the backups.
+
+\h#operation-backup|Backups|
+
+The \c{obe} role owns the database and so can dump it. We use the custom
+format, which is compressed and which \c{pg_restore} can restore selectively:
+
+\
+$ sudo -u obe pg_dump --format=custom \
+  --file=/var/lib/obe/obe-$(date +%F).dump obe
+\
+
+To make a backup every night, we can add a line to the \c{obe} user's
+\c{crontab} (\c{sudo\ crontab\ -u\ obe\ -e}), escaping the percent sign as
+\c{cron} requires:
+
+\
+0 4 * * * pg_dump -Fc -f /var/lib/obe/obe-$(date +\%F).dump obe
+\
+
+\N|These backups are on the same host as the database, so make sure they are
+also copied to another one.|
+
+To restore a backup, we stop \c{obe}, drop the database, let the setup script
+create an empty one, restore the backup into it, and start \c{obe} again:
+
+\
+$ sudo systemctl stop obe
+$ sudo -u postgres dropdb obe
+$ obe/etc/private/postgresql/obe-postgresql-setup --yes
+$ sudo -u obe pg_restore --dbname=obe \
+  /var/lib/obe/obe-2026-10-08.dump
+$ sudo systemctl start obe
+\
+
+The backup includes the schema version. If an older \c{obe} made it, then
+\c{obe} refuses to start until we migrate the restored schema (see
+\l{#upgrade-schema Migrating Database Schema}).
+
+\h#operation-remote|Remote Database|
+
+The setup script configures a local server. To use a server on another host,
+we give the role a password and allow it to connect over the network:
+
+\
+ALTER ROLE obe PASSWORD '...';
+\
+
+The server's \c{pg_hba.conf} then needs a line like this one, with the
+network of the \c{obe} host:
+
+\
+host  obe  obe  192.0.2.0/24  scram-sha-256
+\
+
+And the options file names the server and the credentials:
+
+\
+--db-host     db.example.org
+--db-port     5432
+--db-user     obe
+--db-password ...
+\
+
+\N|The command line of a process is visible to the other users of the host.
+The password belongs in the options file, which only \c{root} and the
+\c{obe} group can read, or in the PostgreSQL password file (see
+\c{PGPASSFILE} in the PostgreSQL documentation).|
+
+\h1#upgrade|Upgrading|
+
+At this point we assume that \c{obe} is installed as described in
+\l{#install Installation} and that the \c{bpkg} configuration from step 2 is
+in \c{~/obe-build/}.
+
+We first fetch the new version and see what we are upgrading to:
+
+\
+$ cd ~/obe-build
+$ bpkg fetch
+$ bpkg status obe
+!obe configured 0.1.0 available 0.2.0
+\
+
+The upgrade stops the service, so the clients get disconnected and lose their
+matchmaking sessions. If the new version changes the database schema, then it
+also migrates it, and we want a fresh backup before that (see
+\l{#operation-backup Backups}).
+
+We uninstall the old version before installing the new one, so that the
+files the new version no longer has don't remain installed:
+
+\
+$ sudo systemctl stop obe
+$ bpkg uninstall --all --recursive
+$ bpkg build --upgrade --recursive obe
+$ bpkg install --all --recursive
+$ sudo -u obe /opt/obe/bin/obe \
+  --options-file /etc/obe/obe.options --migrate -v
+migrated database obe schema from version 1 to 2
+$ sudo systemctl start obe
+\
+
+\N|The \c{--recursive} option makes \c{bpkg} upgrade and install the
+dependencies of \c{obe} as well. See
+\l{https://build2.org/bpkg/doc/bpkg-pkg-build.xhtml \c{bpkg-pkg-build(1)}}
+for details.|
+
+\h#upgrade-schema|Migrating Database Schema|
+
+The database records the version of its schema. Each \c{obe} version uses one
+schema version and on startup refuses a database with any other:
+
+\
+error: database obe schema version 1 instead of 2
+  info: run 'obe --migrate' to create or migrate it
+\
+
+\c{obe} can migrate the schemas from a range of earlier versions to its own.
+With \c{--migrate} it does what the database needs and with \c{-v} it reports
+what it did:
+
+\
+created database obe schema version 2
+migrated database obe schema from version 1 to 2
+database obe schema version 2 is current
+\
+
+The migration runs in a single transaction, so a failed migration leaves the
+database as it was. If several hosts run \c{--migrate} at once, then the
+migrations happen one after another and all but the first find the schema
+current.
+
+\c{obe} fails without changing anything if the schema is outside its range:
+
+\
+error: unable to migrate database obe: database schema version 1
+is too old to migrate
+error: unable to migrate database obe: database schema version 3
+is newer than 2
+\
+
+An old schema is migrated in steps, first with an intermediate \c{obe}
+version that still supports it. The release notes (the \c{NEWS} file) say
+when a version drops the support for a schema. A newer schema means the
+database belongs to a newer \c{obe}. To go back to an earlier \c{obe}, we
+reinstall it and restore the backup made before the migration, which loses
+the changes made since.
+
+\N|All the \c{obe} processes that share a database have to use the same
+schema version. So we stop all of them before the migration and only start
+the upgraded ones after it.|
+
+\h1#develop|Development|
+
+This chapter is for the \c{obe} developers and assumes the development setup
+from the repository's \c{README.md}.
+
+\h#develop-test|Testing with PostgreSQL|
+
+The \c{libobe} tests use the in-memory stores unless we give them a
+PostgreSQL maintenance database (normally \c{postgres}) on a server where our
+user may create databases. The setup script grants this permission to the
+user we name with \c{--test-role}:
+
+\
+$ etc/private/postgresql/obe-postgresql-setup --test-role \"$USER\"
+$ bdep test config.libobe.test.pgsql=postgres
+\
+
+Each test creates its own database, named \c{obe_test_} followed by a random
+suffix, and drops it once done. The tests connect with the \c{libpq}
+defaults, so the \c{PGHOST} and \c{PGPORT} environment variables select
+another server.
+
+\h#develop-schema|Changing Database Schema|
+
+The persistent classes are in \c{libobe/libobe/model.hxx}. The development
+build (\c{config.libobe.develop=true}) translates this header with the ODB
+compiler and copies the generated code to \c{libobe/libobe/pregenerated/},
+where the consumption build takes it from. So after changing the header we
+build in a development configuration and commit the regenerated code along
+with the header. The \c{model} test fails if the two are out of sync.
+
+The schema versions are defined in the same header:
+
+\
+#define LIBOBE_SCHEMA_VERSION_BASE 1
+#define LIBOBE_SCHEMA_VERSION      1, open
+\
+
+The current version is \i{open} while its changes are unreleased, and the
+changes made in the meantime fold into it. The ODB compiler records the closed
+versions in the changelog, \c{libobe/libobe/model.xml}, and generates the
+migration statements from it. The changelog is both its input and its output,
+so we commit it as well. A schema version goes through the following steps:
+
+\dl|
+
+\li|\b{1. Close Version}\n
+
+Before releasing an \c{obe} version with schema changes, we remove \c{open}
+from \c{LIBOBE_SCHEMA_VERSION}, build, and commit the updated changelog.|
+
+\li|\n\b{2. Open Next Version}\n
+
+After the release, we bump the current version (for example, to
+\c{2,\ open}) for the changes that follow.|
+
+\li|\n\b{3. Raise Base Version}\n
+
+To drop the migration from the oldest versions, we raise
+\c{LIBOBE_SCHEMA_VERSION_BASE}. The deployments with an older schema then
+migrate in steps (see \l{#upgrade-schema Migrating Database Schema}), so the
+release notes have to say so.||
+
+See the Database Schema Evolution chapter of the ODB manual for the changes
+that the migration supports.
+"

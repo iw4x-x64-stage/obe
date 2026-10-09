@@ -1,0 +1,12 @@
+/* file      : code-box.css
+ * license   : MIT; see accompanying LICENSE file
+ */
+
+/* Note: see also p-code-box.css if changing anything here. */
+
+code
+{
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 0.2em;
+  padding: .2em .32em .18em .32em;
+}

@@ -1,0 +1,68 @@
+/* file      : intro.css
+ * license   : MIT; see accompanying LICENSE file
+ */
+
+/* Bases:
+ *
+ * common.css
+ * pre-box.css
+ * code-box.css
+ *
+ */
+
+#content
+{
+  max-width: 43.6em;
+  padding-left: 3em; /* Reserve for headings. */
+}
+
+h1
+{
+  font-weight: normal;
+  font-size: 2em;
+  line-height: 1.4em;
+  margin: 1.6em 0 .6em -1.4em;
+}
+
+h1.preface
+{
+  margin-left: -.56em;
+}
+
+h2
+{
+  font-weight: normal;
+  font-size: 1.556em;
+  line-height: 1.4em;
+  margin: 1.6em 0 .6em -.8em;
+}
+
+h3
+{
+  font-weight: normal;
+  font-size: 1.3em;
+  line-height: 1.4em;
+  margin: 1.6em 0 .6em -.2em;
+}
+
+/* Title page */
+
+#titlepage {
+  margin: 0 0 4em 0;
+  border-bottom: 1px solid black;
+}
+
+#titlepage .title {
+  font-weight: normal;
+  font-size: 2.333em;
+  line-height: 1.4em;
+  letter-spacing: 0;
+  text-align: center;
+  margin: 2em 0 2em 0;
+}
+
+#titlepage p {
+  font-size: 0.889em;
+  line-height: 1.4em;
+  margin: 2em 0 .6em 0;
+}

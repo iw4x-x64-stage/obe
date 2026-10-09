@@ -1,0 +1,78 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+define css: file
+css{*}: extension = css
+
+define xhtml: doc
+xhtml{*}: extension = xhtml
+
+# The documentation sources. Note that file{} targets (and the cli{} and css{}
+# targets derived from it) are distributed but not installed.
+#
+./: cli{manual} file{doc-*} style/{css{*} file{LICENSE}}
+
+# The manual is generated with the CLI compiler in the development build and
+# distributed, so that the consumption build gets it without the compiler.
+# It is never kept in the repository.
+#
+
+## Consumption build ($develop == false).
+#
+
+# Use the pregenerated version, which only the distribution has.
+#
+./: pregenerated/xhtml{*}: include = (!$develop)
+
+# Distribute the pregenerated version only in the consumption build.
+#
+pregenerated/xhtml{*}: dist = (!$develop)
+
+#
+##
+
+## Development build ($develop == true).
+#
+
+./: xhtml{obe-manual}: include = $develop
+
+if $develop
+{
+  import! [metadata] cli = cli%exe{cli}
+
+  # Use the date of the last commit, so that the same revision always
+  # produces the same documentation. Before the first commit there is none,
+  # so we say so.
+  #
+  doc_date = $process.run(git -C $src_root log -1 --ignore-missing \
+                          '--format=%cd' '--date=format:%B %Y' HEAD)
+
+  if ($doc_date == [null] || $doc_date == '')
+    doc_date = 'uncommitted'
+
+  doc_options = -v project=obe -v version=$version              \
+                -v copyright='the IW4x authors' -v date="$doc_date" \
+                --suppress-undocumented
+}
+
+# In the development build distribute the generated version, remapping its
+# location to the path of the pregenerated version (which is only
+# distributed in the consumption build, see above).
+#
+xhtml{obe-manual}: dist = ($develop ? pregenerated/ : false)
+
+xhtml{obe-manual}: cli{manual}                                      \
+                   file{doc-prologue.xhtml doc-epilogue.xhtml}      \
+                   style/css{common pre-box code-box p-code-box toc \
+                             doc}                                    \
+                   $cli
+%
+if $develop
+{{
+  diag 'cli --html' ($<[0]) -> $>
+
+  $cli $doc_options --generate-html --html-suffix .xhtml \
+    --html-prologue-file $path($<[1])                    \
+    --html-epilogue-file $path($<[2])                    \
+    --stdout $path($<[0]) >$path($>)
+}}
