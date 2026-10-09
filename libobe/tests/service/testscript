@@ -296,6 +296,141 @@
   error 106: query 2 with 1 parameters instead of 7
   EOO
 
+  : search-short
+  : Test skipping the sessions with fewer attributes than the query uses
+  :
+  $* <<EOI >>~/EOO/
+  task 1 1 1
+  uint8 0
+  blob ababababababababababababababababababababababababababababababababababababab
+  blob 0000000000000000
+  blob 00000000000000000000000000000000
+  int32 18
+  int32 1
+  int32 0
+  int32 0
+  int32 8
+  int32 10
+  int32 3
+  int32 0
+  int32 140
+  int32 3
+  int32 10
+  int32 6
+  bytes 0000
+
+  task 2 2 5
+  uint8 0
+  int32 2
+  int32 50
+  int32 8
+  int32 10
+  int32 140
+  int32 7
+  int32 3
+  int32 2
+  int32 110
+  bytes 0000
+  EOI
+  ok
+  uint32 1
+  /blob [0-9a-f]{16}/
+  /blob [0-9a-f]{32}/
+  ok
+  uint32 0
+  EOO
+
+  : attributes
+  : Test the limits of the session attributes and query parameters
+  :
+  $* <<EOI >>EOO
+  task 1 1 1
+  uint8 0
+  blob ababababababababababababababababababababababababababababababababababababab
+  blob 0000000000000000
+  blob 00000000000000000000000000000000
+  int32 18
+  int32 1
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  bytes 0000
+
+  task 2 2 5
+  uint8 0
+  int32 2
+  int32 50
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  int32 0
+  bytes 0000
+  EOI
+  error 106: more than 32 session attributes
+  error 106: more than 32 query parameters
+  EOO
+
   : modify-delete
   : Test modifying and deleting a session by the host only
   :
