@@ -1,0 +1,221 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# The tests of the services that keep their state in a store. They are
+# included for each store (see testscript).
+
+: storage
+:
+{{
+  test.arguments += storage
+
+  : upload-get
+  : Test uploading, listing, updating, and getting a file
+  :
+  $* <<EOI >>~/EOO/
+  task 1 1 7
+  uint8 0
+  uint64 1
+  uint32 0
+  uint16 100
+
+  task 1 1 1
+  uint8 0
+  bool false
+  string mpdata
+  bool true
+  blob 0102
+
+  task 1 1 7
+  uint8 0
+  uint64 1
+  uint32 0
+  uint16 100
+  string mp
+
+  task 1 1 2
+  uint8 0
+  uint64 1
+  blob 030405
+
+  task 1 1 5
+  uint8 0
+  uint64 1
+
+  task 1 1 8
+  uint8 0
+  uint32 0
+  uint16 100
+  string other
+  EOI
+  ok
+  uint32 0
+  ok
+  uint64 1
+  ok
+  uint32 1
+  uint32 2
+  uint64 1
+  /uint32 \d+/{2}
+  bool false
+  bool true
+  uint64 1
+  string mpdata
+  ok
+  ok
+  uint32 3
+  uint64 1
+  /uint32 \d+/{2}
+  bool false
+  bool true
+  uint64 1
+  string mpdata
+  blob 030405
+  ok
+  uint32 0
+  EOO
+
+  : access
+  : Test accessing another user's files
+  :
+  $* <<EOI >>EOO
+  task 1 1 1
+  uint8 0
+  bool false
+  string mpdata
+  bool true
+  blob 01
+
+  task 2 2 5
+  uint8 0
+  uint64 1
+
+  task 2 2 2
+  uint8 0
+  uint64 1
+  blob 02
+
+  task 2 2 7
+  uint8 0
+  uint64 1
+  uint32 0
+  uint16 100
+  EOI
+  ok
+  uint64 1
+  error 1000: no file 1
+  error 1001: file 1 is owned by user 1
+  error 1001: files of user 1 not accessible
+  EOO
+
+  : limits
+  : Test the file size and count limits
+  :
+  $* <<EOI >>EOO
+  task 1 1 1
+  uint8 0
+  bool false
+  string a
+  bool true
+  blob 0102030405
+
+  task 1 1 1
+  uint8 0
+  bool false
+  string a
+  bool true
+  blob 01
+
+  task 1 1 1
+  uint8 0
+  bool false
+  string a
+  bool true
+  blob 02
+
+  task 1 1 1
+  uint8 0
+  bool false
+  string b
+  bool true
+  blob 03
+
+  task 1 1 2
+  uint8 0
+  uint64 2
+  blob 01
+  EOI
+  error 1002: file of 5 bytes exceeds 4 bytes
+  ok
+  uint64 1
+  ok
+  uint64 1
+  error 1001: user has 1 files
+  error 1000: no file 2
+  EOO
+}}
+
+: performance
+:
+{{
+  test.arguments += performance
+
+  : submit-query
+  : Test submitting and querying the values
+  :
+  $* <<EOI >>EOO
+  task 1 1 1
+  uint32 7
+  uint64 1
+  int64 -5
+  uint64 2
+  int64 10
+
+  task 3 3 2
+  uint32 7
+  uint64 2
+  uint64 1
+
+  task 3 3 2
+  uint32 7
+  uint64 4
+
+  task 3 3 2
+  uint32 8
+  uint64 1
+  EOI
+  ok
+  ok
+  uint32 2
+  uint64 2
+  int64 10
+  uint64 1
+  int64 -5
+  ok
+  uint32 0
+  ok
+  uint32 0
+  EOO
+
+  : limit
+  : Test the limit of values per request
+  :
+  $* <<EOI >>EOO
+  task 1 1 1
+  uint32 7
+  uint64 1
+  int64 1
+  uint64 2
+  int64 2
+  uint64 3
+  int64 3
+
+  task 1 1 2
+  uint32 7
+  uint64 1
+  EOI
+  error 106: more than 2 values
+  ok
+  uint32 0
+  EOO
+}}
