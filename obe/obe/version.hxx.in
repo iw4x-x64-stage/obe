@@ -1,0 +1,37 @@
+// Copyright (c) the IW4x authors (see the AUTHORS file).
+// SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+#pragma once
+
+// The numeric version format is AAAAABBBBBCCCCCDDDE where:
+//
+// AAAAA - major version number
+// BBBBB - minor version number
+// CCCCC - bugfix version number
+// DDD   - alpha / beta (DDD + 500) version number
+// E     - final (0) / snapshot (1)
+//
+// When DDDE is not 0, 1 is subtracted from AAAAABBBBBCCCCC. For example:
+//
+// Version      AAAAABBBBBCCCCCDDDE
+//
+// 0.1.0        0000000001000000000
+// 0.1.2        0000000001000020000
+// 1.2.3        0000100002000030000
+// 2.2.0-a.1    0000200001999990010
+// 3.0.0-b.2    0000299999999995020
+// 2.2.0-a.1.z  0000200001999990011
+//
+#define OBE_VERSION       $obe.version.project_number$ULL
+#define OBE_VERSION_STR   "$obe.version.project$"
+#define OBE_VERSION_ID    "$obe.version.project_id$"
+#define OBE_VERSION_FULL  "$obe.version$"
+
+#define OBE_VERSION_MAJOR $obe.version.major$
+#define OBE_VERSION_MINOR $obe.version.minor$
+#define OBE_VERSION_PATCH $obe.version.patch$
+
+#define OBE_PRE_RELEASE   $obe.version.pre_release$
+
+#define OBE_SNAPSHOT_SN   $obe.version.snapshot_sn$ULL
+#define OBE_SNAPSHOT_ID   "$obe.version.snapshot_id$"

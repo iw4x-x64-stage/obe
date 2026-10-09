@@ -1,0 +1,34 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# Development mode: regenerate the options parser from its .cli definition.
+# The consumption build uses the pre-generated parser and doesn't need the
+# cli compiler (see obe/buildfile for details).
+#
+config [bool] config.obe.develop ?= false
+
+develop = $config.obe.develop
+
+define cli: file
+cli{*}: extension = cli
+
+using in
+
+# Suppress warnings coming from external libraries.
+#
+cxx.internal.scope = current
+
+cxx.std = latest
+
+using cxx
+
+hxx{*}: extension = hxx
+ixx{*}: extension = ixx
+txx{*}: extension = txx
+cxx{*}: extension = cxx
+
+# The test target for cross-testing (running tests under Wine, etc).
+#
+test.target = $cxx.target
+
+cxx.poptions =+ "-I$out_root" "-I$src_root"

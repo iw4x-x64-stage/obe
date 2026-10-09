@@ -1,0 +1,116 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+import libs  = libobe%lib{obe}
+import libs += libboost-asio%lib{boost_asio}
+import libs += libssl%lib{ssl}
+import libs += libcrypto%lib{crypto}
+
+./: exe{obe}: {hxx ixx txx cxx}{** -version -obe-options -pregenerated/**} \
+              {hxx}{version}
+
+hxx{version}: in{version} $src_root/manifest
+
+## Consumption build ($develop == false).
+#
+
+# Use the pregenerated options parser in the consumption build.
+#
+exe{obe}: pregenerated/{hxx ixx cxx}{**}: include = (!$develop)
+
+if! $develop
+  cxx.poptions =+ "-I($src_base/pregenerated)" # Note: must come first.
+
+# Distribute the pregenerated options parser only in the consumption build.
+#
+pregenerated/{hxx ixx cxx}{*}: dist = (!$develop)
+
+# The checksum of the options file that the pregenerated options parser is
+# produced from (see the recipe below). It is used by the test in both
+# builds.
+#
+./: pregenerated/obe/file{obe.cli.sha256}
+
+#
+##
+
+## Development build ($develop == true).
+#
+
+exe{obe}: {hxx ixx cxx}{obe-options}: include = $develop
+
+if $develop
+  import! [metadata] cli = cli%exe{cli}
+
+# In the development build distribute the regenerated
+# {hxx ixx cxx}{obe-options}, remapping their locations to the paths of the
+# pregenerated versions (which are only distributed in the consumption build;
+# see above). This way we make sure that the distributed files are always
+# up-to-date.
+#
+<{hxx ixx cxx}{obe-options}>: cli{obe}
+{
+  dist = ($develop ? [dir_path] pregenerated/obe/ : false)
+
+  # Symlink the generated code in src for convenience of development.
+  #
+  backlink = true
+}
+
+<hxx{~'/(.*)-options/'} ixx{~'/\1-options/'} cxx{~'/\1-options/'}>: \
+  cli{~'/\1/'} $cli
+%
+if $develop
+{{
+  t = $path($>[0]).t
+
+  depdb dyndep --byproduct --file $t
+
+  h = $path($>[0])
+  i = $path($>[1])
+  c = $path($>[2])
+
+  d = $directory($h)
+
+  options = --std c++11 -I $src_root --include-prefix obe          \
+            --guard-prefix OBE --cli-namespace obe::cli            \
+            --generate-specifier --generate-file-scanner           \
+            --generate-parse --suppress-undocumented               \
+            --include-with-brackets --page-usage 'obe::print_obe_' \
+            --long-usage --ansi-color --output-suffix -options     \
+            --option-length 31
+
+  $cli $options --generate-dep --dep-file $t -o $d $path($<[0])
+
+  # If the result differs from the pregenerated version, copy it over.
+  #
+  # Also record the checksum of the options file that the pregenerated
+  # version is produced from. This way the test can detect that the options
+  # file was changed without updating the pregenerated version (see
+  # testscript).
+  #
+  s = $path($<[0])
+  d = [dir_path] $src_base/pregenerated/obe
+
+  dh = $d/$leaf($h)
+  di = $d/$leaf($i)
+  dc = $d/$leaf($c)
+  ds = $d/$leaf($s).sha256
+
+  if diff $dh $h >- && \
+     diff $di $i >- && \
+     diff $dc $c >- && \
+     sha256sum --sum-only $s | diff $ds - >-
+    exit
+
+  cp --no-cleanup $h $dh
+  cp --no-cleanup $i $di
+  cp --no-cleanup $c $dc
+
+  sha256sum --sum-only $s >=$ds &!$ds
+}}
+
+#
+##
+
+exe{obe}: $libs

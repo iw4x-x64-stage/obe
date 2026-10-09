@@ -1,0 +1,263 @@
+// Copyright (c) the IW4x authors (see the AUTHORS file).
+// SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+include <string>;
+include <vector>;
+include <cstddef>;
+include <cstdint>;
+
+namespace obe
+{
+  {
+    "<options> <file> <addr> <port> <id> <sec> <level> <name> <user> <pass>
+     <host> <num>",
+
+    "\h|SYNOPSIS|
+
+     \c{\b{obe} [<options>]}
+
+     \h|DESCRIPTION|
+
+     \cb{obe} serves Demonware online services that IW4x connects to: the
+     authentication over HTTPS, the lobby service gateway over TCP, and the
+     bandwidth test over UDP. It runs until interrupted (\cb{SIGINT} or
+     \cb{SIGTERM})."
+  }
+
+  class options
+  {
+    "\h|OPTIONS|"
+
+    bool --help {"Print usage information and exit."}
+    bool --version {"Print version and exit."}
+
+    std::string --options-file
+    {
+      "<file>",
+      "Read additional options from <file>. Each option should appear on a
+       separate line optionally followed by space or equal sign (\cb{=}) and
+       an option value. Empty lines and lines starting with \cb{#} are
+       ignored."
+    }
+
+    bool -v
+    {
+      "Print informational messages, such as the listening endpoints. This is
+       equivalent to \cb{--verbose 2}."
+    }
+
+    bool -V
+    {
+      "Print trace messages, such as where the stored files are kept. This
+       is equivalent to \cb{--verbose 3}."
+    }
+
+    bool --quiet|-q
+    {
+      "Print errors only. This is equivalent to \cb{--verbose 0}."
+    }
+
+    std::uint16_t --verbose = 1
+    {
+      "<level>",
+      "Set the diagnostics verbosity to <level> between 0 and 3. Level 0
+       prints errors only, level 1 (the default) also warnings, level 2 also
+       informational messages, and level 3 also trace messages. Note that
+       the diagnostics of the servers themselves (for example, the failed
+       gateway tasks) are currently printed regardless of the verbosity."
+    }
+
+    std::string --auth-address = "0.0.0.0"
+    {
+      "<addr>",
+      "Listen for the authentication requests on <addr>. The default is all
+       IPv4 interfaces."
+    }
+
+    std::uint16_t --auth-port = 443
+    {
+      "<port>",
+      "Listen for the authentication requests on <port>. The default is
+       443. If <port> is 0, then the system chooses a free port (see
+       \cb{--print-endpoints})."
+    }
+
+    std::string --lsg-address = "0.0.0.0"
+    {
+      "<addr>",
+      "Listen for the lobby service gateway connections on <addr>. The
+       default is all IPv4 interfaces."
+    }
+
+    std::uint16_t --lsg-port = 3074
+    {
+      "<port>",
+      "Listen for the lobby service gateway connections on <port>. The
+       default is 3074. If <port> is 0, then the system chooses a free port
+       (see \cb{--print-endpoints})."
+    }
+
+    std::string --bandwidth-address = "0.0.0.0"
+    {
+      "<addr>",
+      "Receive the bandwidth test packets on <addr>. The default is all IPv4
+       interfaces."
+    }
+
+    std::uint16_t --bandwidth-port = 3075
+    {
+      "<port>",
+      "Receive the bandwidth test packets on UDP <port>. The default is
+       3075. If <port> is 0, then the system chooses a free port (see
+       \cb{--print-endpoints})."
+    }
+
+    std::string --bandwidth-public-address
+    {
+      "<addr>",
+      "The IPv4 address the clients send the bandwidth test packets to. If
+       unspecified, it is the address the client reached the gateway at,
+       which is only right if the bandwidth test packets are received on
+       that address too and the client can reach it directly (rather than
+       through NAT or a proxy). Note that without an IPv4 address the
+       clients cannot test their bandwidth, in which case they assume they
+       have enough."
+    }
+
+    std::uint16_t --bandwidth-public-port = 0
+    {
+      "<port>",
+      "The UDP port the clients send the bandwidth test packets to. If
+       unspecified, it is the port they are received on (see
+       \cb{--bandwidth-port})."
+    }
+
+    std::string --tls-certificate
+    {
+      "<file>",
+      "The authentication server certificate chain in the PEM format.
+       Required."
+    }
+
+    std::string --tls-key
+    {
+      "<file>",
+      "The authentication server private key in the PEM format. Required."
+    }
+
+    std::string --ticket-key
+    {
+      "<file>",
+      "Read the server ticket sealing key (32 raw bytes) from <file>. If
+       unspecified, a random key is generated on startup, which means the
+       tickets issued before a restart are no longer accepted (the clients
+       authenticate again)."
+    }
+
+    std::vector<std::uint32_t> --title
+    {
+      "<id>",
+      "Serve the title <id>. Repeat this option to serve several titles. If
+       unspecified, any title is served."
+    }
+
+    std::uint32_t --ticket-lifetime = 3600
+    {
+      "<sec>",
+      "The time the client has to connect to the gateway after
+       authenticating. The default is 3600 seconds."
+    }
+
+    std::string --sandbox = "RETAIL"
+    {
+      "<name>",
+      "The sandbox name reported to the clients. The default is
+       \cb{RETAIL}."
+    }
+
+    std::string --platform = "PC"
+    {
+      "<name>",
+      "The device platform info reported to the clients. The default is
+       \cb{PC}."
+    }
+
+    bool --print-endpoints
+    {
+      "Print the authentication, gateway, and bandwidth test endpoints to
+       \cb{stdout}, one per line, once listening. This is primarily useful
+       together with port 0, which makes the system choose a free port."
+    }
+
+    std::string --db-name
+    {
+      "<name>",
+      "Keep the stored files and performance values in the PostgreSQL
+       database <name>. If unspecified, they are kept in memory and are lost
+       on exit, which is only suitable for development. The database schema
+       must be created or migrated with \cb{--migrate} beforehand."
+    }
+
+    std::string --db-user
+    {
+      "<user>",
+      "The PostgreSQL database user. If unspecified, the user name of the
+       process is used."
+    }
+
+    std::string --db-password
+    {
+      "<pass>",
+      "The PostgreSQL database password. Note that the command line is
+       visible to other users, so consider specifying it in an options file
+       (see \cb{--options-file}) or in the PostgreSQL password file (see the
+       \cb{PGPASSFILE} environment variable). If unspecified, no password is
+       sent."
+    }
+
+    std::string --db-host
+    {
+      "<host>",
+      "The PostgreSQL database host name, address, or UNIX-domain socket
+       directory. If unspecified, the local UNIX-domain socket is used."
+    }
+
+    std::uint16_t --db-port = 0
+    {
+      "<port>",
+      "The PostgreSQL database port. If unspecified, the default port is
+       used."
+    }
+
+    std::size_t --db-max-connections = 5
+    {
+      "<num>",
+      "The most concurrent PostgreSQL database connections, which is also the
+       number of threads that perform the database operations. The default
+       is 5."
+    }
+
+    std::size_t --db-retry = 10
+    {
+      "<num>",
+      "Retry a database operation that fails with a recoverable error (for
+       example, a serialization failure due to a concurrent update or a lost
+       connection) up to <num> times. The default is 10."
+    }
+
+    bool --migrate
+    {
+      "Create the PostgreSQL database schema if there is none or migrate it
+       to the current version, then exit. Several servers may share the
+       database, in which case the schema should be migrated once, before
+       starting the servers of the new version. Requires \cb{--db-name}."
+    }
+
+    bool --insecure-authentication
+    {
+      "Accept any platform token, deriving the user identity from the token
+       itself. Anyone presenting the same token is the same user, so this is
+       only suitable for development."
+    }
+  };
+}
