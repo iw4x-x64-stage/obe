@@ -5,6 +5,19 @@
 #
 tls = --tls-certificate $src_base/cert.pem --tls-key $src_base/key.pem
 
+# The endpoints on the loopback interface with the ports picked by the
+# system, so the tests don't depend on what is listening.
+#
+local = --auth-address 127.0.0.1 --auth-port 0 \
+        --lsg-address 127.0.0.1 --lsg-port 0 \
+        --bandwidth-address 127.0.0.1 --bandwidth-port 0
+
+# The servers serve until terminated, which the successful startup tests do
+# once the timeout expires (with SIGTERM on POSIX, which shuts them down
+# gracefully).
+#
+timeout = 2
+
 : tls
 : Test the TLS certificate and key failures
 :
@@ -26,14 +39,10 @@ tls = --tls-certificate $src_base/cert.pem --tls-key $src_base/key.pem
 : Test the failures to bind and listen
 :
 : Note that 192.0.2.1 is reserved for documentation (RFC 5737), so no host
-: has it. The other endpoints are on the loopback interface with the ports
-: picked by the system, so the tests don't depend on what is listening.
+: has it.
 :
 {{
-  test.options += $tls \
-                  --auth-address 127.0.0.1 --auth-port 0 \
-                  --lsg-address 127.0.0.1 --lsg-port 0 \
-                  --bandwidth-address 127.0.0.1 --bandwidth-port 0
+  test.options += $tls $local
 
   : bandwidth
   :
@@ -53,3 +62,49 @@ tls = --tls-certificate $src_base/cert.pem --tls-key $src_base/key.pem
   /error: unable to listen on 192\.0\.2\.1:0: .+/
   EOE
 }}
+
+: ticket-key
+: Test the ticket key file
+:
+{{
+  test.options += $tls $local
+
+  : missing
+  :
+  $* --ticket-key k 2>>EOE != 0
+  error: unable to open ticket key file k
+  EOE
+
+  : size
+  :
+  echo 'short' >=k;
+  $* --ticket-key k 2>>EOE != 0
+  error: invalid ticket key file k
+    info: ticket key must be exactly 32 bytes
+  EOE
+
+  : valid
+  : Test that the key of 32 bytes (31 characters and the newline) is used
+  :
+  echo '0123456789012345678901234567890' >=k;
+  env --timeout $timeout --timeout-success -- $* --ticket-key k
+}}
+
+: start
+: Test the startup with the publisher files
+:
+mkdir -p files/2010;
+echo 'version 1' >=files/2010/playlists.patch2;
+env --timeout $timeout --timeout-success -- \
+  $* $tls $local -V --publisher-files files --insecure-authentication \
+  --print-endpoints >>~/EOO/ 2>>~/EOE/
+/127\.0\.0\.1:\d+/
+/{3}
+EOO
+keeping files and performance values in memory
+published file playlists.patch2 (10 bytes) of title 2010 as 1
+published 1 publisher file(s)
+warning: accepting any platform token (insecure authentication)
+/listening on [\d.:]+ and [\d.:]+, testing bandwidth on [\d.:]+/
+shutting down
+EOE
