@@ -1,0 +1,55 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# The TLS certificate and key that the servers start with (see cert).
+#
+tls = --tls-certificate $src_base/cert.pem --tls-key $src_base/key.pem
+
+: tls
+: Test the TLS certificate and key failures
+:
+{{
+  : certificate
+  :
+  $* --tls-certificate c.pem --tls-key k.pem 2>>~/EOE/ != 0
+  /error: unable to load TLS certificate c.pem: .+/
+  EOE
+
+  : key
+  :
+  $* --tls-certificate $src_base/cert.pem --tls-key k.pem 2>>~/EOE/ != 0
+  /error: unable to load TLS key k.pem: .+/
+  EOE
+}}
+
+: endpoints
+: Test the failures to bind and listen
+:
+: Note that 192.0.2.1 is reserved for documentation (RFC 5737), so no host
+: has it. The other endpoints are on the loopback interface with the ports
+: picked by the system, so the tests don't depend on what is listening.
+:
+{{
+  test.options += $tls \
+                  --auth-address 127.0.0.1 --auth-port 0 \
+                  --lsg-address 127.0.0.1 --lsg-port 0 \
+                  --bandwidth-address 127.0.0.1 --bandwidth-port 0
+
+  : bandwidth
+  :
+  $* --bandwidth-address 192.0.2.1 2>>~/EOE/ != 0
+  /error: unable to bind bandwidth test socket to 192\.0\.2\.1:0: .+/
+  EOE
+
+  : auth
+  :
+  $* --auth-address 192.0.2.1 2>>~/EOE/ != 0
+  /error: unable to listen on 192\.0\.2\.1:0: .+/
+  EOE
+
+  : lsg
+  :
+  $* --lsg-address 192.0.2.1 2>>~/EOE/ != 0
+  /error: unable to listen on 192\.0\.2\.1:0: .+/
+  EOE
+}}

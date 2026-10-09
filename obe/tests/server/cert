@@ -1,0 +1,15 @@
+#! /bin/sh
+
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# Regenerate the TLS key and the self-signed certificate that the tests
+# start the authentication server with (see testscript). Nothing ever
+# connects with them, so the certificate only needs to load.
+#
+# Normally, you don't need to regenerate the private key.
+#
+# openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 > key.pem
+
+openssl req -x509 -new -key key.pem -days 5475 -subj '/CN=localhost' > \
+  cert.pem

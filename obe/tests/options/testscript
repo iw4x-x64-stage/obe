@@ -69,12 +69,6 @@ EOO
     info: specify the IPv4 address the clients can reach
   EOE
 
-  : certificate
-  :
-  $* --tls-certificate c.pem --tls-key k.pem 2>>~/EOE/ != 0
-  /error: unable to load TLS certificate and key: .+/
-  EOE
-
   : publisher-files
   : Test the publisher files errors
   :
@@ -120,7 +114,7 @@ EOO
     mkdir -p files/2010;
     echo 'version 1' >=files/2010/playlists.patch2;
     $* $o 2>>~/EOE/ != 0
-    /error: unable to load TLS certificate and key: .+/
+    /error: unable to load TLS certificate c.pem: .+/
     EOE
   }}
 

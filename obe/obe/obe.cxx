@@ -551,17 +551,29 @@ namespace obe
 
     // Load the TLS certificate and key of the authentication server.
     //
+    // Note that here and below we report the error code's message rather
+    // than what(), which also carries the failed function and the source
+    // location.
+    //
     asio::ssl::context tls (asio::ssl::context::tls_server);
-    try
     {
-      tls.use_certificate_chain_file (o.tls_certificate ());
-      tls.use_private_key_file (o.tls_key (), asio::ssl::context::pem);
-    }
-    catch (const boost::system::system_error& e)
-    {
-      println (cerr, "error: unable to load TLS certificate and key: {}",
-               e.what ());
-      throw failed ();
+      boost::system::error_code ec;
+
+      tls.use_certificate_chain_file (o.tls_certificate (), ec);
+      if (ec)
+      {
+        println (cerr, "error: unable to load TLS certificate {}: {}",
+                 o.tls_certificate (), ec.message ());
+        throw failed ();
+      }
+
+      tls.use_private_key_file (o.tls_key (), asio::ssl::context::pem, ec);
+      if (ec)
+      {
+        println (cerr, "error: unable to load TLS key {}: {}",
+                 o.tls_key (), ec.message ());
+        throw failed ();
+      }
     }
 
     // Load or generate the ticket key, which the authentication server
@@ -680,8 +692,8 @@ namespace obe
     }
     catch (const boost::system::system_error& e)
     {
-      println (cerr, "error: unable to bind bandwidth test socket: {}",
-               e.what ());
+      println (cerr, "error: unable to bind bandwidth test socket to {}: {}",
+               to_string (be), e.code ().message ());
       throw failed ();
     }
 
@@ -702,11 +714,27 @@ namespace obe
 
     // Start the servers.
     //
+    auto listen_failed = [] (const tcp::endpoint& ep,
+                             const boost::system::system_error& e)
+    {
+      println (cerr, "error: unable to listen on {}: {}",
+               to_string (ep), e.code ().message ());
+      return failed ();
+    };
+
     optional<auth_server> a;
-    optional<lsg_server>  g;
     try
     {
       a.emplace (ctx.get_executor (), ae, tls, auth, sealer, move (as));
+    }
+    catch (const boost::system::system_error& e)
+    {
+      throw listen_failed (ae, e);
+    }
+
+    optional<lsg_server> g;
+    try
+    {
       g.emplace (ctx.get_executor (),
                  ge,
                  sealer,
@@ -716,8 +744,7 @@ namespace obe
     }
     catch (const boost::system::system_error& e)
     {
-      println (cerr, "error: unable to listen: {}", e.what ());
-      throw failed ();
+      throw listen_failed (ge, e);
     }
 
     if (o.insecure_authentication () && verb >= 1)
