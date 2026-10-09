@@ -46,6 +46,11 @@ namespace obe
   // a new identity with a new key. Note that finding a key for a given XUID
   // takes about 2^48 key generations.
   //
+  // The verification lives in libobe because the Demonware authentication
+  // server is its first user. The Xbox Live services (xle) depend on libobe
+  // and verify the tokens issued for their own audiences with the same
+  // function, so its tests are here too (tests/xbl/).
+  //
   struct xbl_settings
   {
     // The audience the tokens must be issued for (the URL the client
