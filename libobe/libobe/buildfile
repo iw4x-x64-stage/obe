@@ -6,6 +6,8 @@ impl_libs = # Implementation dependencies.
 
 import intf_libs = libcrypto%lib{crypto}
 
+import impl_libs = libboost-json%lib{boost_json}
+
 lib{obe}: {hxx ixx txx cxx}{** -version} hxx{version} $impl_libs $intf_libs
 
 hxx{version}: in{version} $src_root/manifest
