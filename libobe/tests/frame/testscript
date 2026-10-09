@@ -1,0 +1,133 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# The expected ciphertexts were produced independently with openssl-enc(1)
+# and Python's hmac module from the same key, seeds, and payloads.
+#
+k = 'key 000102030405060708090a0b0c0d0e0f1011121314151617'
+
+: iv
+:
+$* <<EOI >>EOO
+iv 0
+iv 7
+EOI
+605d1b8c132bf5d1
+82edde376f61fd90
+EOO
+
+: prelude
+:
+{{
+  $* <'prelude b400000000100000' >'180 4096' : valid
+
+  : version
+  :
+  $* <'prelude b300000000100000' 2>>EOE != 0
+  error: unsupported protocol version 179
+  EOE
+}}
+
+: parse
+:
+{{
+  : plain
+  :
+  $* <<EOI >>EOO
+  parse 0400000000070102
+  EOI
+  plain 070102
+  EOO
+
+  : keepalive
+  :
+  $* <<EOI >>EOO
+  parse 00000000040000000007010200000000
+  EOI
+  plain 070102
+  EOO
+
+  : split
+  : Test frames arriving in pieces and several frames in one piece
+  :
+  $* <<EOI >>EOO
+  parse 04
+  parse 000000000701
+  parse 0204000000000a0b0c
+  EOI
+  plain 070102
+  plain 0a0b0c
+  EOO
+
+  : encrypted
+  :
+  $* <<"EOI" >>EOO
+  $k
+  parse 0d0000000105000000e2e2ab2ced97de14
+  parse 1500000001090000000d1144c52729c754c1385aa3dc8d57e6
+  parse 1d0000000104030201dd60b073dab9f45813f88e1e80304f751aee2f4fbfe9594b
+  EOI
+  encrypted 5 07010205
+  encrypted 9 0a0b0c0d0e09090909090909
+  encrypted 16909060 000102030405060708090a0b0c0d0e0f04040404
+  EOO
+
+  : no-key
+  :
+  $* <<EOI 2>>EOE != 0
+  parse 0d0000000105000000e2e2ab2ced97de14
+  EOI
+  stdin:0: error: encrypted frame before session key is established
+  EOE
+
+  : authentication
+  : Test a frame decrypted with the wrong seed
+  :
+  $* <<"EOI" 2>>EOE != 0
+  $k
+  parse 0d0000000106000000e2e2ab2ced97de14
+  EOI
+  stdin:0: error: encrypted frame authentication failed
+  EOE
+
+  : encrypted-size
+  :
+  $* <<"EOI" >'plain 070102' 2>>EOE != 0
+  $k
+  parse 0400000000070102
+  parse 090000000105000000e2e2ab2c
+  EOI
+  stdin:8: error: invalid encrypted frame size 9
+  EOE
+
+  : flag
+  :
+  $* <<EOI 2>>EOE != 0
+  parse 0100000002
+  EOI
+  stdin:0: error: invalid frame encryption flag 2
+  EOE
+
+  : size
+  :
+  $* <<EOI 2>>EOE != 0
+  parse 41000000
+  EOI
+  stdin:0: error: frame of 65 bytes exceeds maximum size of 64 bytes
+  EOE
+}}
+
+: serialize
+:
+$* <<"EOI" >>EOO
+$k
+plain 1 0102
+encrypted 1 7 0102
+encrypted 4 8 1122334455667788
+keepalive
+EOI
+0400000000010102
+0d00000001070000003b0f795d4c9811c8
+150000000108000000f6f692ef4e15463df2899c53bcdd8812
+00000000
+EOO
