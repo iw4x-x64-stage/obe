@@ -53,16 +53,39 @@ EOO
 EOE
 
 : push
-: Test pushing a message to the client
+: Test pushing messages to the client
 :
-$* push >>EOO 2>>~%EOE%
-encrypted connection id 1
-encrypted push value 7
-encrypted task reply tx 1 error 0 op 1 value 1
-disconnect 1
-EOO
-%.+: info: user 3 connected as 1%
-EOE
+{{
+  $* push >>EOO 2>>~%EOE% : deliver
+  encrypted connection id 1
+  encrypted push value 7
+  encrypted task reply tx 1 error 0 op 1 value 1
+  disconnect 1
+  EOO
+  %.+: info: user 3 connected as 1%
+  EOE
+
+  $* oversized >>EOO 2>>~%EOE% : oversized
+  encrypted connection id 1
+  encrypted task reply tx 1 error 0 op 2 value 0
+  disconnect 1
+  EOO
+  %.+: info: user 3 connected as 1%
+  %.+: warning: push message of 65536 bytes exceeds client capacity%
+  EOE
+
+  $* full >>EOO 2>>~%EOE% : full
+  encrypted connection id 1
+  encrypted push value 7
+  encrypted push value 7
+  encrypted push value 7
+  encrypted task reply tx 1 error 0 op 1 value 3
+  disconnect 1
+  EOO
+  %.+: info: user 3 connected as 1%
+  %.+: warning: send queue full, push dropped%
+  EOE
+}}
 
 : handshake
 : Test the handshake failures
@@ -87,6 +110,27 @@ EOE
   closed
   EOO
   %.+: warning: handshake failed: server ticket authentication failed \(access denied\)%
+  EOE
+
+  $* service >>EOO 2>>~%EOE% : service
+  plain error 113
+  closed
+  EOO
+  %.+: warning: handshake failed: invalid handshake frame \(protocol error\)%
+  EOE
+
+  $* untyped >>EOO 2>>~%EOE% : untyped
+  plain error 113
+  closed
+  EOO
+  %.+: warning: handshake failed: untyped handshake buffer \(protocol error\)%
+  EOE
+
+  $* truncated >>EOO 2>>~%EOE% : truncated
+  plain error 113
+  closed
+  EOO
+  %.+: warning: handshake failed: invalid handshake: expected uint32 instead of no type \(protocol error\)%
   EOE
 
   $* version >>EOO 2>>~%EOE% : version

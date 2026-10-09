@@ -71,8 +71,10 @@ public:
   }
 };
 
-// Bit service 51: operation 1 pushes the uint32 to the client's user and
-// returns the number of connections it was pushed to. Print the
+// Bit service 51: operation 1 takes the uint32 value and count and pushes
+// the value to the client's user count times, operation 2 takes the uint32
+// size and pushes a message of that many bytes. Both return the number of
+// pushes queued, summed over the user's connections. Print the
 // disconnects.
 //
 class push_service: public service
@@ -86,16 +88,26 @@ public:
 
   virtual awaitable<void>
   handle (const lsg_identity& id,
-          uint8_t,
+          uint8_t op,
           bit_parser& in,
           bit_serializer& out) override
   {
-    bytes p;
-    bit_serializer (p).next_uint32 (in.next_uint32 ());
+    // Note that the handler doesn't suspend between the pushes, so the
+    // session cannot drain its queue in the meantime.
+    //
+    size_t r (0);
+    if (op == 1)
+    {
+      bytes p;
+      bit_serializer (p).next_uint32 (in.next_uint32 ());
 
-    out.next_uint32 (
-      static_cast<uint32_t> (registry_.push (id.title, id.user, p)));
+      for (uint32_t n (in.next_uint32 ()); n != 0; --n)
+        r += registry_.push (id.title, id.user, p);
+    }
+    else
+      r = registry_.push (id.title, id.user, bytes (in.next_uint32 ()));
 
+    out.next_uint32 (static_cast<uint32_t> (r));
     co_return;
   }
 
@@ -385,12 +397,17 @@ private:
 // encrypted   Handshake with encryption and send a sequence of tasks.
 // plain       As above but without encryption, a single task.
 // push        Handshake and send a task that pushes a message back.
+// oversized   As above but the message exceeds the client's capacity.
+// full        As above but push more messages than the send queue takes.
 // reset       Handshake and reset the connection.
 // empty       Handshake without encryption (an encrypted frame always
 //             has the padding) and send an empty task frame.
 // expired     Handshake with an expired ticket.
 // title       Handshake for a different title than the ticket's.
 // forged      Handshake with a ticket from a different sealer.
+// service     Send a task frame instead of the handshake.
+// untyped     Send a handshake with an untyped bit buffer.
+// truncated   Send a handshake that ends before its title.
 // version     Send a prelude with an unsupported version.
 // idle        Handshake and then wait for the keepalive and the idle
 //             timeout.
@@ -424,6 +441,8 @@ main (int argc, char* argv[])
     settings.keepalive_interval = chrono::milliseconds (100);
     settings.idle_timeout = chrono::milliseconds (250);
   }
+  else if (scenario == "full")
+    settings.send_queue_size = 2;
 
   asio::io_context ctx;
   lsg_server server (ctx.get_executor (),
@@ -452,6 +471,21 @@ main (int argc, char* argv[])
     }
 
     co_await c.prelude (frame_prelude::current_version);
+
+    // Send a malformed handshake (plain since we have no key yet) and wait
+    // for the error.
+    //
+    if (scenario == "service" || scenario == "untyped" ||
+        scenario == "truncated")
+    {
+      const bytes p (scenario == "service" ? bytes {50, 1}  :
+                     scenario == "untyped" ? bytes {7, 0}   :
+                                             bytes {7, 1});
+      co_await c.send (p);
+
+      while (co_await c.receive ()) ;
+      co_return;
+    }
 
     // Issue the ticket.
     //
@@ -495,15 +529,39 @@ main (int argc, char* argv[])
       co_return;
     }
 
-    if (scenario == "push")
+    if (scenario == "push" || scenario == "full")
     {
-      co_await c.bit_task (51, 1, [] (bit_serializer& s)
+      // Push the value once, or four times with the queue of two, and
+      // receive the queued pushes and the reply. Note that the transmitter
+      // waiting for a message takes the first one without it occupying
+      // the queue, so the fourth push is the one dropped.
+      //
+      const bool f (scenario == "full");
+
+      co_await c.bit_task (51, 1, [f] (bit_serializer& s)
       {
         s.next_uint32 (7);
+        s.next_uint32 (f ? 4 : 1);
       });
 
-      for (size_t i (0); i != 2; ++i) // Push and reply.
+      for (size_t i (f ? 4 : 2); i != 0; --i)
         co_await c.receive ();
+
+      c.socket ().close ();
+      co_return;
+    }
+
+    if (scenario == "oversized")
+    {
+      // Push a message as large as the receive capacity the prelude
+      // announces, which leaves no room for the frame around it.
+      //
+      co_await c.bit_task (51, 2, [] (bit_serializer& s)
+      {
+        s.next_uint32 (0x10000);
+      });
+
+      co_await c.receive (); // Reply.
 
       c.socket ().close ();
       co_return;
