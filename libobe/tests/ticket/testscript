@@ -1,0 +1,54 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# The client ticket binary representation was produced independently with
+# Python's struct module.
+#
+k = 000102030405060708090a0b0c0d0e0f1011121314151617
+b = deadbdef01d204000000f1536510ff53650200000000000000004c5e0201001001706c6179657200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000102030405060708090a0b0c0d0e0f101112131415161700000000000000
+f = '1234 1700000000 1700003600 2 76561198000000000'
+
+: client
+:
+{{
+  : serialize
+  :
+  $* <"client 1 $f player $k" >"$b"
+
+  : parse
+  :
+  $* <"parse $b" >"1 $f player $k"
+
+  : magic
+  :
+  $* <'parse 00adbdef01d204000000f1536510ff53650200000000000000004c5e0201001001706c6179657200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000102030405060708090a0b0c0d0e0f101112131415161700000000000000' 2>>EOE != 0
+  error: invalid client ticket magic
+  EOE
+
+  : name
+  : Test a user name without the terminator
+  :
+  $* <'parse deadbdef01d204000000f1536510ff53650200000000000000004c5e020100100161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161000102030405060708090a0b0c0d0e0f101112131415161700000000000000' 2>>EOE != 0
+  error: unterminated client ticket user name
+  EOE
+}}
+
+: server
+:
+{{
+  : round-trip
+  :
+  $* <"server $f $k" >"$f $k"
+
+  : tamper
+  :
+  {{
+    $* <"tamper 0 $f $k" 2>'error: server ticket authentication failed' != 0 : nonce
+    $* <"tamper 50 $f $k" 2>'error: server ticket authentication failed' != 0 : data
+    $* <"tamper 127 $f $k" 2>'error: server ticket authentication failed' != 0 : tag
+  }}
+
+  : foreign
+  :
+  $* <"foreign $f $k" 2>'error: server ticket authentication failed' != 0
+}}
