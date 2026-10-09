@@ -39,6 +39,18 @@ accepted 127.0.0.1
 rejected 1813
 EOO
 
+: upload-range
+: Test the upload ignoring the packets out of the sequence range
+:
+$* <<EOI >>EOO
+request 1 0
+upload 1 4 0 1
+finalize 1
+EOI
+accepted 127.0.0.1
+results 40 0 0 1
+EOO
+
 : download
 : Test the upload and download
 :
