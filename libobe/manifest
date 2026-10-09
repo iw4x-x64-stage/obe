@@ -18,4 +18,5 @@ depends: * build2 >= 0.18.0
 depends: * bpkg >= 0.18.0
 depends: libcrypto ^3.3.1
 depends: libboost-json ^1.91.0
+depends: libboost-asio ^1.91.0
 builds: default

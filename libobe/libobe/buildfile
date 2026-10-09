@@ -4,7 +4,8 @@
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
 
-import intf_libs = libcrypto%lib{crypto}
+import intf_libs  = libboost-asio%lib{boost_asio}
+import intf_libs += libcrypto%lib{crypto}
 
 import impl_libs = libboost-json%lib{boost_json}
 
