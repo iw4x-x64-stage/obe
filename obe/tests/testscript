@@ -20,10 +20,14 @@ EOO
 : Test that the pregenerated options parser is up to date
 :
 : The development build regenerates it and records the checksum of the
-: options file it is produced from (see buildfile). So this test fails if
-: the options file was changed without a development build.
+: options file it is produced from (see ../obe/buildfile). So this test
+: fails if the options file was changed without a development build.
 :
-sha256sum --sum-only $src_base/obe.cli >>>$src_base/pregenerated/obe/obe.cli.sha256
+{
+  s = $src_root/../obe
+
+  sha256sum --sum-only $s/obe.cli >>>$s/pregenerated/obe/obe.cli.sha256
+}
 
 : options
 : Test the command line errors

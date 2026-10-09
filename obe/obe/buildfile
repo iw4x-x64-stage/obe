@@ -7,8 +7,7 @@ import libs += libssl%lib{ssl}
 import libs += libcrypto%lib{crypto}
 
 ./: exe{obe}: {hxx ixx txx cxx}{** -version -obe-options -pregenerated/**} \
-              {hxx}{version}                                               \
-              testscript
+              {hxx}{version}
 
 hxx{version}: in{version} $src_root/manifest
 
@@ -27,8 +26,8 @@ if! $develop
 pregenerated/{hxx ixx cxx}{*}: dist = (!$develop)
 
 # The checksum of the options file that the pregenerated options parser is
-# produced from (see the recipe below). It is used by the test in both
-# builds.
+# produced from (see the recipe below). It is used by the test (see
+# ../tests/testscript) in both builds.
 #
 ./: pregenerated/obe/file{obe.cli.sha256}
 
@@ -88,7 +87,7 @@ if $develop
   # Also record the checksum of the options file that the pregenerated
   # version is produced from. This way the test can detect that the options
   # file was changed without updating the pregenerated version (see
-  # testscript).
+  # ../tests/testscript).
   #
   s = $path($<[0])
   d = [dir_path] $src_base/pregenerated/obe

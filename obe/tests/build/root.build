@@ -1,0 +1,16 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# We need the target to run the tests under Wine and the like when
+# cross-testing (see test.target below).
+#
+using cxx.config
+
+# Test the obe executable with every testscript in this subproject.
+#
+import obe = obe%exe{obe}
+testscript{*}: test = $obe
+
+# The test target for cross-testing (running tests under Wine, etc).
+#
+test.target = $cxx.target
