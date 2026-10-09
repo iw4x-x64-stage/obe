@@ -33,3 +33,20 @@ libobe/libobe/model.xml -spdx linguist-generated
 # their own license notice (see obe/LEGAL).
 #
 obe/doc/style/** -spdx
+
+# The pregenerated code is overwritten by the ODB and CLI compilers in the
+# development build and the checksums of its sources are compared with the
+# sha256sum output as is (see the pregenerated-current tests), so they cannot
+# carry the SPDX header.
+#
+**/pregenerated/** -spdx
+
+# The test certificates and keys are PEM data, which has no comment syntax.
+#
+libobe/tests/**/*.pem -spdx
+
+# The identity register (see mailmap and authors in the IW4x toolchain) and
+# the clangd configuration are data files without a header.
+#
+identities -spdx
+.clangd -spdx
