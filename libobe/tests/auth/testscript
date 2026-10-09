@@ -1,0 +1,142 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: request
+:
+{{
+  : serialize
+  :
+  $* <'make-request 3735928559 1234' >'{"auth_task":44,"iv_seed":3735928559,"title_id":1234}'
+
+  : parse
+  :
+  $* <<EOI >>EOO
+  request {"auth_task":44,"iv_seed":3735928559,"title_id":1234}
+  request {"title_id":1,"iv_seed":2,"auth_task":44,"extra":[]}
+  EOI
+  3735928559 1234
+  2 1
+  EOO
+
+  : syntax
+  :
+  $* <'request {"auth_task":44' 2>>~/EOE/ != 0
+  /error: invalid auth request: .+/
+  EOE
+
+  : object
+  :
+  $* <'request [44]' 2>'error: invalid auth request: object expected' != 0
+
+  : task
+  :
+  $* <'request {"auth_task":45,"iv_seed":1,"title_id":1}' 2>>EOE != 0
+  error: invalid auth request: auth task 45 instead of 44
+  EOE
+
+  : missing
+  :
+  $* <'request {"auth_task":44,"title_id":1}' 2>>EOE != 0
+  error: invalid auth request: missing 'iv_seed' member
+  EOE
+
+  : range
+  :
+  $* <'request {"auth_task":44,"iv_seed":4294967296,"title_id":1}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+
+  : negative
+  :
+  $* <'request {"auth_task":44,"iv_seed":-1,"title_id":1}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+}}
+
+: reply
+:
+{{
+  : error
+  :
+  $* <<EOI >>EOO
+  make-error 735
+  reply {"auth_task":45,"code":735}
+  EOI
+  {"auth_task":45,"code":735}
+  735
+  EOO
+
+  : grant
+  :
+  $* <<EOI >>EOO
+  make-grant 5 RETAIL PC
+  EOI
+  {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=","server_ticket":"f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=","extra_data":"{\"sbx\":\"RETAIL\",\"dpi\":\"PC\"}"}
+  EOO
+
+  : parse
+  :
+  $* <<EOI >>EOO
+  reply {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=","server_ticket":"f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=","extra_data":"{\"sbx\":\"RETAIL\",\"dpi\":\"PC\"}"}
+  EOI
+  700 5 RETAIL PC
+  AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=
+  f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=
+  EOO
+
+  : ticket-size
+  :
+  $* <<EOI 2>>EOE != 0
+  reply {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":"YWJj","server_ticket":"f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=","extra_data":"{}"}
+  EOI
+  error: invalid auth reply: 'client_ticket' member is 3 bytes instead of 128
+  EOE
+
+  : ticket-base64
+  :
+  $* <<EOI 2>>EOE != 0
+  reply {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":"YW*j","server_ticket":"f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=","extra_data":"{}"}
+  EOI
+  error: invalid auth reply: 'client_ticket' member: invalid base64 character
+  EOE
+
+  : extra-data
+  :
+  $* <<EOI 2>>EOE != 0
+  reply {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=","server_ticket":"f359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=","extra_data":"{\"sbx\":\"RETAIL\"}"}
+  EOI
+  error: invalid auth reply extra data: missing 'dpi' member
+  EOE
+}}
+
+: base64
+:
+{{
+  : valid
+  :
+  $* <<EOI >>EOO
+  encode 
+  encode 61
+  encode 6162
+  encode 616263
+  decode YQ==
+  decode YWI=
+  decode YWJj
+  EOI
+
+  YQ==
+  YWI=
+  YWJj
+  61
+  6162
+  616263
+  EOO
+
+  : invalid
+  :
+  {{
+    $* <'decode YWJ' 2>'error: invalid base64 length' != 0       : length
+    $* <'decode Y=Jj' 2>'error: invalid base64 character' != 0    : padding
+    $* <'decode YW J' 2>'error: invalid base64 character' != 0    : space
+  }}
+}}
