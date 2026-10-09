@@ -3,7 +3,8 @@
 
 #include <libobe/base64.hxx>
 
-#include <climits> // INT_MAX
+#include <climits>   // INT_MAX
+#include <algorithm> // ranges::replace()
 
 #include <openssl/evp.h>
 
@@ -65,5 +66,45 @@ namespace obe
 
     r.resize (static_cast<size_t> (n) - pad);
     return r;
+  }
+
+  string
+  base64url_encode (span<const uint8_t> d)
+  {
+    string r (base64_encode (d));
+
+    while (!r.empty () && r.back () == '=')
+      r.pop_back ();
+
+    ranges::replace (r, '+', '-');
+    ranges::replace (r, '/', '_');
+    return r;
+  }
+
+  bytes
+  base64url_decode (string_view s)
+  {
+    // Translate to the standard form, rejecting its own characters, and
+    // restore the padding. A single character past a group of 4 cannot
+    // encode a byte.
+    //
+    if (s.size () % 4 == 1)
+      throw invalid_input ("invalid base64url length");
+
+    string t (s);
+    for (char& c: t)
+    {
+      switch (c)
+      {
+        case '-': c = '+'; break;
+        case '_': c = '/'; break;
+        case '+':
+        case '/':
+        case '=': throw invalid_input ("invalid base64url character");
+      }
+    }
+
+    t.append ((4 - t.size () % 4) % 4, '=');
+    return base64_decode (t);
   }
 }

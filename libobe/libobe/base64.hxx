@@ -21,4 +21,16 @@ namespace obe
   //
   LIBOBE_SYMEXPORT bytes
   base64_decode (string_view);
+
+  // Base64-encode the data using the URL and filename safe alphabet without
+  // padding (the form JSON Web Signatures use; see RFC 7515).
+  //
+  LIBOBE_SYMEXPORT string
+  base64url_encode (span<const uint8_t>);
+
+  // Base64-decode a string in the above form. Throw invalid_argument if it
+  // is not a valid representation.
+  //
+  LIBOBE_SYMEXPORT bytes
+  base64url_decode (string_view);
 }
