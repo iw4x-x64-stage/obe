@@ -37,7 +37,7 @@ The `config.cc.compiledb` value makes the build maintain
 
 ## Contributing
 
-See https://github.com/iw4x/.github/blob/main/CONTRIBUTING.md
+See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ## License
 
