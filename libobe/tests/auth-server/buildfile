@@ -1,0 +1,12 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+import libs  = libobe%lib{obe}
+import libs += libboost-beast%lib{boost_beast}
+
+./: exe{driver}: {hxx ixx txx cxx}{**} $libs testscript
+
+# The test-only self-signed certificate and its key (the testscript passes
+# their paths to the driver).
+#
+./: file{cert.pem key.pem}
