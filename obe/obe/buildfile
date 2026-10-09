@@ -7,7 +7,8 @@ import libs += libssl%lib{ssl}
 import libs += libcrypto%lib{crypto}
 
 ./: exe{obe}: {hxx ixx txx cxx}{** -version -obe-options -pregenerated/**} \
-              {hxx}{version}
+              {hxx}{version}                                               \
+              testscript
 
 hxx{version}: in{version} $src_root/manifest
 

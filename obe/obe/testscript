@@ -1,0 +1,112 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: help
+:
+$* --help >>~/EOO/
+/.*SYNOPSIS.*/
+/.*/*
+EOO
+
+: version
+:
+$* --version >>~/EOO/
+/obe \d+\.\d+\.\d+.*/
+/libobe \d+\.\d+\.\d+.*/
+/.*/*
+EOO
+
+: pregenerated-current
+: Test that the pregenerated options parser is up to date
+:
+: The development build regenerates it and records the checksum of the
+: options file it is produced from (see buildfile). So this test fails if
+: the options file was changed without a development build.
+:
+sha256sum --sum-only $src_base/obe.cli >>>$src_base/pregenerated/obe/obe.cli.sha256
+
+: options
+: Test the command line errors
+:
+{{
+  : unknown
+  :
+  $* --unknown 2>>EOE != 0
+  error: unknown option '--unknown'
+    info: run 'obe --help' for more information
+  EOE
+
+  : tls
+  :
+  $* --insecure-authentication 2>>EOE != 0
+  error: TLS certificate and key are required
+    info: specify them with --tls-certificate and --tls-key
+  EOE
+
+  : authenticator
+  :
+  $* --tls-certificate c.pem --tls-key k.pem 2>>EOE != 0
+  error: no authenticator configured
+    info: specify --insecure-authentication for development
+  EOE
+
+  : address
+  :
+  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+     --auth-address 'not-an-address' 2>>EOE != 0
+  error: invalid authentication address 'not-an-address'
+  EOE
+
+  : bandwidth-address
+  :
+  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+     --bandwidth-address 'not-an-address' 2>>EOE != 0
+  error: invalid bandwidth test address 'not-an-address'
+  EOE
+
+  : bandwidth-public-address
+  :
+  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+     --bandwidth-public-address '::1' 2>>EOE != 0
+  error: invalid bandwidth test public address '::1'
+    info: specify the IPv4 address the clients can reach
+  EOE
+
+  : certificate
+  :
+  $* --tls-certificate c.pem --tls-key k.pem --insecure-authentication \
+     2>>~/EOE/ != 0
+  /error: unable to load TLS certificate and key: .+/
+  EOE
+
+  : migrate
+  :
+  $* --migrate 2>>EOE != 0
+  error: no database to migrate
+    info: specify it with --db-name
+  EOE
+
+  : verbose
+  :
+  $* --verbose 4 2>>EOE != 0
+  error: invalid --verbose value 4
+    info: specify a level between 0 and 3
+  EOE
+
+  : db-connections
+  :
+  $* --db-name obe --db-max-connections 0 2>>EOE != 0
+  error: invalid --db-max-connections value 0
+  EOE
+
+  : options-file
+  :
+  cat <<EOI >=opts;
+  # Options file.
+  --unknown
+  EOI
+  $* --options-file opts 2>>EOE != 0
+  error: unknown option '--unknown'
+    info: run 'obe --help' for more information
+  EOE
+}}
