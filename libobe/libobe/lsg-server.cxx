@@ -8,6 +8,7 @@
 #include <cstdio>  // stderr
 #include <sstream>
 #include <variant>
+#include <exception> // rethrow_exception()
 
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
@@ -15,6 +16,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <boost/asio/multiple_exceptions.hpp>
 #include <boost/asio/experimental/channel.hpp>
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
@@ -661,11 +663,23 @@ namespace obe
       // keepalives don't interleave on the socket. If either side fails,
       // the other is cancelled.
       //
+      // Note that the cancelled side normally fails as well, in which case
+      // we get both exceptions. The first one is the cause (the protocol
+      // violation, the reset connection, etc) and so it is the one we
+      // handle and report.
+      //
       registration_ = server_.registry_.attach (
         *identity_,
         [this] (const bytes& p) {return push (p);});
 
-      co_await (receive () && transmit ());
+      try
+      {
+        co_await (receive () && transmit ());
+      }
+      catch (const asio::multiple_exceptions& e)
+      {
+        rethrow_exception (e.first_exception ());
+      }
     }
     catch (const frame_parsing& e)
     {

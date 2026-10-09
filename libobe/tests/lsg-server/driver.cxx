@@ -385,6 +385,9 @@ private:
 // encrypted   Handshake with encryption and send a sequence of tasks.
 // plain       As above but without encryption, a single task.
 // push        Handshake and send a task that pushes a message back.
+// reset       Handshake and reset the connection.
+// empty       Handshake without encryption (an encrypted frame always
+//             has the padding) and send an empty task frame.
 // expired     Handshake with an expired ticket.
 // title       Handshake for a different title than the ticket's.
 // forged      Handshake with a ticket from a different sealer.
@@ -467,12 +470,30 @@ main (int argc, char* argv[])
 
     const ticket_data d ((scenario == "forged" ? forger : sealer).seal (t));
     const title_id ht (scenario == "title" ? title_id {4321} : title);
-    const uint32_t seed (scenario == "plain" ? 0 : 100);
+    const uint32_t seed (scenario == "plain" || scenario == "empty" ? 0 : 100);
 
     co_await c.handshake (ht, seed, d, key);
 
     if (!co_await c.receive ()) // Connection id or error.
       co_return;
+
+    // Close abortively (RST instead of FIN) so that the server's read
+    // fails instead of seeing the end of the stream.
+    //
+    if (scenario == "reset")
+    {
+      c.socket ().set_option (tcp::socket::linger (true, 0));
+      c.socket ().close ();
+      co_return;
+    }
+
+    if (scenario == "empty")
+    {
+      co_await c.send (bytes ());
+
+      while (co_await c.receive ()) ;
+      co_return;
+    }
 
     if (scenario == "push")
     {

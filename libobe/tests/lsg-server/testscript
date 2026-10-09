@@ -30,6 +30,28 @@ EOO
 %.+: info: user 3 connected as 1%
 EOE
 
+: reset
+: Test a connection reset by the client
+:
+$* reset >>EOO 2>>~%EOE%
+encrypted connection id 1
+disconnect 1
+EOO
+%.+: info: user 3 connected as 1%
+EOE
+
+: empty
+: Test the protocol violation of an empty task frame
+:
+$* empty >>EOO 2>>~%EOE%
+plain connection id 1
+disconnect 1
+closed
+EOO
+%.+: info: user 3 connected as 1%
+%.+: warning: empty task frame%
+EOE
+
 : push
 : Test pushing a message to the client
 :
