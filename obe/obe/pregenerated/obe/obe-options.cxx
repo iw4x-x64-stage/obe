@@ -1041,7 +1041,12 @@ namespace obe
     os << std::endl
        << "\033[1m--db-host\033[0m \033[4mhost\033[0m                  The PostgreSQL database host name, address, or" << ::std::endl
        << "                                UNIX-domain socket directory. If unspecified," << ::std::endl
-       << "                                the local UNIX-domain socket is used." << ::std::endl;
+       << "                                the \033[1mPGHOST\033[0m environment variable is used and," << ::std::endl
+       << "                                without it, the socket in \033[1m/tmp\033[0m. A local server" << ::std::endl
+       << "                                normally has its socket elsewhere" << ::std::endl
+       << "                                (\033[1m/var/run/postgresql\033[0m on Fedora and Debian), so" << ::std::endl
+       << "                                it is reached with its socket directory, for" << ::std::endl
+       << "                                example, \033[1m--db-host /var/run/postgresql\033[0m." << ::std::endl;
 
     os << std::endl
        << "\033[1m--db-port\033[0m \033[4mport\033[0m                  The PostgreSQL database port. If unspecified," << ::std::endl

@@ -225,7 +225,11 @@ namespace obe
     {
       "<host>",
       "The PostgreSQL database host name, address, or UNIX-domain socket
-       directory. If unspecified, the local UNIX-domain socket is used."
+       directory. If unspecified, the \cb{PGHOST} environment variable is
+       used and, without it, the socket in \cb{/tmp}. A local server
+       normally has its socket elsewhere (\cb{/var/run/postgresql} on Fedora
+       and Debian), so it is reached with its socket directory, for example,
+       \cb{--db-host\ /var/run/postgresql}."
     }
 
     std::uint16_t --db-port = 0

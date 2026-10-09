@@ -112,13 +112,18 @@ set up PostgreSQL database 'obe' owned by role 'obe'? [y/n]: y
 + psql: CREATE ROLE obe LOGIN
 + psql: CREATE DATABASE obe OWNER obe TEMPLATE template0 ...
 database 'obe' is ready
-  info: run 'obe --db-name obe --migrate' as user 'obe' to create
-  its schema
+  info: run 'obe --db-name obe --db-host /var/run/postgresql
+  --migrate' as user 'obe' to create its schema
 \
 
 The \c{obe} role authenticates with the \c{peer} method, which is the
 PostgreSQL default for the local UNIX-domain socket: the system user that
 runs \c{obe} has the name of the role and needs no password.
+
+The script also prints the directory of the server's socket, which we pass
+to \c{obe} with \c{--db-host}. The \c{libpq} library that \c{obe} is built
+with looks for the socket in \c{/tmp} unless told otherwise, and the Debian
+server only creates it in \c{/var/run/postgresql}.
 
 The script skips the steps that are already done, so it is safe to run it
 again. It can also print its plan without doing anything (\c{--print-only})
@@ -233,6 +238,7 @@ comments. Let's create \c{/etc/obe/obe.options} with the following contents:
 --tls-key         /etc/obe/tls/key.pem
 --ticket-key      /etc/obe/ticket.key
 --db-name         obe
+--db-host         /var/run/postgresql
 --verbose         2
 \
 
@@ -562,13 +568,15 @@ user we name with \c{--test-role}:
 
 \
 $ obe/etc/private/postgresql/obe-postgresql-setup --test-role \"$USER\"
-$ bdep test config.libobe.test.pgsql=postgres
+$ PGHOST=/var/run/postgresql \
+  bdep test config.libobe.test.pgsql=postgres
 \
 
 Each test creates its own database, named \c{obe_test_} followed by a random
 suffix, and drops it once done. The tests connect with the \c{libpq}
-defaults, so the \c{PGHOST} and \c{PGPORT} environment variables select
-another server.
+defaults, so the \c{PGHOST} environment variable names the server's socket
+directory (see \l{#install Installation}), and together with \c{PGPORT} it
+can also select another server.
 
 \h#develop-schema|Changing Database Schema|
 

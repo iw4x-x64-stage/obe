@@ -27,6 +27,11 @@
 # authentication configuration (see pg_hba.conf in the PostgreSQL
 # documentation).
 #
+# The socket is in the directory the server is configured with, which on
+# Fedora and Debian is /var/run/postgresql. The libpq that obe is built with
+# looks in /tmp unless told otherwise, so obe names the directory with
+# --db-host (or the PGHOST environment variable), and the script prints it.
+#
 # Note that the script doesn't create the database schema: run the new obe
 # with --migrate for that (see the obe manual).
 #
@@ -353,6 +358,18 @@ then
   error "unable to access database '$database'"
 fi
 
+# The directory of the server's UNIX-domain socket, which is the first one
+# it is configured with.
+#
+socket="$(query 'SHOW unix_socket_directories')"
+socket="${socket%%,*}"
+socket="${socket#"${socket%%[![:space:]]*}"}"
+socket="${socket%"${socket##*[![:space:]]}"}"
+
+if [[ -z "$socket" ]]; then
+  error "unable to determine the server's UNIX-domain socket directory"
+fi
+
 info "database '$database' is ready"
-info "  info: run 'obe --db-name $database --migrate' as user '$role' to \
-create its schema"
+info "  info: run 'obe --db-name $database --db-host $socket --migrate' as \
+user '$role' to create its schema"
