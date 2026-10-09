@@ -141,6 +141,31 @@
   EOI
   error: invalid auth reply extra data: missing 'dpi' member
   EOE
+
+  : number
+  : Test a number written as a string
+  :
+  $* <'reply {"auth_task":45,"code":"735"}' 2>>EOE != 0
+  error: invalid auth reply: invalid 'code' member value
+  EOE
+
+  : range
+  : Test a number beyond the signed 64-bit range, which JSON parses as
+  : unsigned
+  :
+  $* <<EOI 2>>EOE != 0
+  reply {"auth_task":45,"code":700,"iv_seed":18446744073709551615}
+  EOI
+  error: invalid auth reply: invalid 'iv_seed' member value
+  EOE
+
+  : string
+  :
+  $* <<EOI 2>>EOE != 0
+  reply {"auth_task":45,"code":700,"iv_seed":5,"client_ticket":1}
+  EOI
+  error: invalid auth reply: 'client_ticket' member is not a string
+  EOE
 }}
 
 : base64
