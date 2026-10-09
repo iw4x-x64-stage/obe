@@ -37,7 +37,9 @@ namespace obe
   {
   public:
     // Return the identity or nullopt if the token is not valid for the
-    // title. Exceptions other than std::bad_alloc are treated as transient
+    // title. Throw std::invalid_argument describing the problem if the token
+    // is malformed or forged, which denies the authentication as nullopt
+    // does. Other exceptions except std::bad_alloc are treated as transient
     // failures (the client gets a server error and may retry).
     //
     virtual boost::asio::awaitable<optional<auth_identity>>

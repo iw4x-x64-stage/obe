@@ -99,6 +99,11 @@ namespace obe
     {
       throw;
     }
+    catch (const invalid_argument& e)
+    {
+      println (stderr, "{}: warning: invalid platform token: {}", n, e.what ());
+      co_return auth_reply (auth_code::bad_account);
+    }
     catch (const std::exception& e)
     {
       println (stderr, "{}: error: unable to authenticate: {}", n, e.what ());
