@@ -1,6 +1,14 @@
 # Copyright (c) the IW4x authors (see the AUTHORS file).
 # SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
 
+# Development mode: regenerate the database support code from the persistent
+# classes with the ODB compiler. The consumption build uses the pregenerated
+# code and doesn't need the ODB compiler (see libobe/buildfile for details).
+#
+config [bool] config.libobe.develop ?= false
+
+develop = $config.libobe.develop
+
 # Suppress warnings coming from external libraries.
 #
 cxx.internal.scope = current

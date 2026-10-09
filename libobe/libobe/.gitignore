@@ -1,3 +1,8 @@
 # Generated version header.
 #
 version.hxx
+
+# Generated database support code (backlinked from out in the development
+# build).
+#
+/model-odb.?xx

@@ -17,3 +17,14 @@
 # Use `binary` to make sure certain files are never auto-detected as text.
 #
 #*.png binary
+
+# Mark the generated files that we commit (see pregenerated/ in the package
+# buildfiles) so that they are excluded from the repository's language
+# statistics and collapsed in diffs.
+#
+**/pregenerated/** linguist-generated
+
+# The ODB changelog is rewritten by the ODB compiler, so it cannot carry the
+# SPDX header (see libobe/libobe/model.hxx).
+#
+libobe/libobe/model.xml -spdx linguist-generated

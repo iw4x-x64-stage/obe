@@ -1,0 +1,11 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: pregenerated
+:
+: Test that the pregenerated database support code is up to date. The
+: development build records the checksum of the persistent classes header
+: it is produced from (see buildfile). So this test fails if the header was
+: changed without a development build.
+:
+sha256sum --sum-only $src_base/model.hxx >>>$src_base/pregenerated/libobe/model.hxx.sha256

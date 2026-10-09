@@ -14,13 +14,168 @@ import intf_libs += libcrypto%lib{crypto}
 import impl_libs  = libboost-json%lib{boost_json}
 import impl_libs += libboost-beast%lib{boost_beast}
 
-lib{obe}: {hxx ixx txx cxx}{** -version} hxx{version} $impl_libs $intf_libs
+# The PostgreSQL stores use ODB, which is kept out of the public headers.
+#
+import libodb     = libodb%lib{odb}
+import impl_libs += libodb-pgsql%lib{odb-pgsql}
+
+impl_libs += $libodb
+
+lib{obe}: {hxx ixx txx cxx}{** -version -model-odb -pregenerated/**} \
+          hxx{version} $impl_libs $intf_libs
 
 hxx{version}: in{version} $src_root/manifest
+
+## Consumption build ($develop == false).
+#
+
+# Use the pregenerated database support code in the consumption build (see
+# also the build options below).
+#
+lib{obe}: pregenerated/{hxx ixx cxx}{**}: include = (!$develop)
+
+# Distribute the pregenerated database support code only in the consumption
+# build.
+#
+pregenerated/{hxx ixx cxx}{*}: dist = (!$develop)
+
+# The checksum of the persistent classes header that the pregenerated code
+# is produced from (see the recipe below). It is used by the test in both
+# builds.
+#
+# Note that listing anything as a prerequisite of the directory means we
+# have to list the library as well.
+#
+./: lib{obe} pregenerated/libobe/file{model.hxx.sha256} testscript{model}
+
+#
+##
+
+## Development build ($develop == true).
+#
+
+lib{obe}: {hxx ixx cxx}{model-odb}: include = $develop
+
+if $develop
+  import! [metadata] odb = odb%exe{odb}
+
+# In the development build distribute the regenerated {hxx ixx cxx}{model-odb},
+# remapping their locations to the paths of the pregenerated versions (which
+# are only distributed in the consumption build; see above). This way we make
+# sure that the distributed files are always up-to-date.
+#
+<{hxx ixx cxx}{model-odb}>:
+{
+  dist = ($develop ? [dir_path] pregenerated/libobe/ : false)
+
+  # Symlink the generated code in src for convenience of development.
+  #
+  backlink = true
+}
+
+# Note that the ODB compiler doesn't produce the dependency information so we
+# list the headers that the persistent classes header includes. We also need
+# the ODB runtime headers, which the compiler includes, and so pass the
+# runtime's preprocessor options. They are obtained through the utility
+# library that has nothing but the runtime dependency (the way to get them
+# for a tool other than the C++ compiler; see $cxx.lib_poptions()).
+#
+libul{odb-meta}: $libodb
+
+# The changelog (model.xml), which records the released schema versions, is
+# both the input and output of the ODB compiler (see model.hxx for details).
+# It is always kept in src and is distributed for the development of the
+# distributed package.
+#
+./: file{model.xml}
+
+<{hxx ixx cxx}{model-odb}>: hxx{model types} file{model.xml} $odb \
+                            libul{odb-meta}
+%
+if $develop
+{{
+  h = $path($>[0])
+  i = $path($>[1])
+  c = $path($>[2])
+
+  d = $directory($h)
+
+  # Note that we pass the ODB runtime's (but not our) preprocessor options
+  # since the persistent classes header is compiled as is. Since they may
+  # change, they are hashed into the dependency database.
+  #
+  options = --std c++26 --database pgsql --generate-query \
+            --generate-schema --schema-format embedded    \
+            --sql-name-case lower --include-with-brackets \
+            --include-prefix libobe --guard-prefix LIBOBE \
+            --changelog-dir $src_base --output-dir $d     \
+            "-I$src_root" $cxx.lib_poptions($<[4])
+
+  depdb hash $options
+
+  diag odb ($<[0])
+
+  $odb $options $path($<[0])
+
+  # If the result differs from the pregenerated version, copy it over.
+  #
+  # Also record the checksum of the persistent classes header that the
+  # pregenerated version is produced from. This way the test can detect that
+  # the header was changed without updating the pregenerated version (see
+  # model.testscript).
+  #
+  s = $path($<[0])
+  d = [dir_path] $src_base/pregenerated/libobe
+
+  dh = $d/$leaf($h)
+  di = $d/$leaf($i)
+  dc = $d/$leaf($c)
+  ds = $d/$leaf($s).sha256
+
+  if diff $dh $h >- && \
+     diff $di $i >- && \
+     diff $dc $c >- && \
+     sha256sum --sum-only $s | diff $ds - >-
+    exit
+
+  cp --no-cleanup $h $dh
+  cp --no-cleanup $i $di
+  cp --no-cleanup $c $dc
+
+  sha256sum --sum-only $s >=$ds &!$ds
+}}
+
+#
+##
 
 # Build options.
 #
 cxx.poptions =+ "-I$out_root" "-I$src_root"
+
+# Note that the pregenerated code must be found before the generated code
+# that may be backlinked into src by a development build.
+#
+if! $develop
+  cxx.poptions =+ "-I($src_base/pregenerated)"
+
+# The persistent classes header has the ODB pragmas, which are unknown to the
+# compiler.
+#
+switch $cxx.class
+{
+  case 'gcc'
+  {
+    {obja objs}{pgsql model-odb}:               \
+      cxx.coptions += -Wno-unknown-pragmas
+    pregenerated/libobe/{obja objs}{model-odb}: \
+      cxx.coptions += -Wno-unknown-pragmas
+  }
+  case 'msvc'
+  {
+    {obja objs}{pgsql model-odb}:               cxx.coptions += /wd4068
+    pregenerated/libobe/{obja objs}{model-odb}: cxx.coptions += /wd4068
+  }
+}
 
 obja{*}: cxx.poptions += -DLIBOBE_STATIC_BUILD
 objs{*}: cxx.poptions += -DLIBOBE_SHARED_BUILD
@@ -56,4 +211,7 @@ else
 
 # Private headers.
 #
-hxx{openssl}@./: install = false
+hxx{openssl}@./:                       install = false
+hxx{model}@./:                         install = false
+{hxx ixx}{model-odb}:                  install = false
+pregenerated/libobe/{hxx ixx}{*}:      install = false
