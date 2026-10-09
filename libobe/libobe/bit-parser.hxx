@@ -160,8 +160,7 @@ namespace obe
     // Throw bit_parsing for the current position with the description
     // formatted from the arguments.
     //
-    template <typename... A>
-      requires formattable_arguments<A...>
+    template <formattable_argument... A>
     [[noreturn]] void
     fail (std::format_string<A...>, A&&...) const;
 

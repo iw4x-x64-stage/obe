@@ -29,11 +29,11 @@ namespace obe
   using std::to_string;
   using std::to_underlying;
 
-  // The arguments formattable with std::format().
+  // The argument formattable with std::format().
   //
-  template <typename... A>
-  concept formattable_arguments =
-    (std::formattable<std::remove_cvref_t<A>, char> && ...);
+  template <typename T>
+  concept formattable_argument =
+    std::formattable<std::remove_cvref_t<T>, char>;
 
   // Invalid external input (a message, a ticket, etc). The description is
   // formatted from the arguments, for example:
@@ -43,8 +43,7 @@ namespace obe
   class invalid_input: public invalid_argument
   {
   public:
-    template <typename... A>
-      requires formattable_arguments<A...>
+    template <formattable_argument... A>
     explicit
     invalid_input (std::format_string<A...> f, A&&... a)
       : invalid_argument (std::format (f, std::forward<A> (a)...)) {}
@@ -58,6 +57,12 @@ namespace obe
   {
     {to_string (v)} -> std::convertible_to<const char*>;
   };
+
+  // The formatting context that produces characters (see the formatter of
+  // the named enumerations below).
+  //
+  template <typename C>
+  concept char_format_context = std::same_as<typename C::char_type, char>;
 }
 
 namespace std
@@ -70,8 +75,7 @@ namespace std
   template <obe::named_enum T>
   struct formatter<T, char>: formatter<string_view>
   {
-    template <typename C>
-      requires same_as<typename C::char_type, char>
+    template <obe::char_format_context C>
     auto
     format (T v, C& c) const
     {

@@ -3,8 +3,7 @@
 
 namespace obe
 {
-  template <typename... A>
-    requires formattable_arguments<A...>
+  template <formattable_argument... A>
   void frame_parser::
   fail (std::format_string<A...> f, A&&... a) const
   {

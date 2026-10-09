@@ -37,8 +37,7 @@ concept statement_executor = requires (T& x, const string& s)
 // Note that the arguments are formatted into the statement verbatim (they
 // are not quoted or escaped), which is fine for the values we control.
 //
-template <statement_executor E, typename... A>
-  requires formattable_arguments<A...>
+template <statement_executor E, formattable_argument... A>
 static unsigned long long
 execute (E& e, format_string<A...> f, A&&... a)
 {

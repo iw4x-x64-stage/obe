@@ -26,8 +26,7 @@ namespace obe
   class database_error: public runtime_error
   {
   public:
-    template <typename... A>
-      requires formattable_arguments<A...>
+    template <formattable_argument... A>
     explicit
     database_error (std::format_string<A...> f, A&&... a)
       : runtime_error (std::format (f, std::forward<A> (a)...)) {}

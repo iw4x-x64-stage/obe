@@ -3,8 +3,7 @@
 
 namespace obe
 {
-  template <typename... A>
-    requires formattable_arguments<A...>
+  template <formattable_argument... A>
   void bit_parser::
   fail (std::format_string<A...> f, A&&... a) const
   {
