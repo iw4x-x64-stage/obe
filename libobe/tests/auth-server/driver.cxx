@@ -8,7 +8,7 @@
 #include <print>
 #include <iostream>
 #include <exception>
-#include <stdexcept> // runtime_error
+#include <stdexcept> // runtime_error, invalid_argument
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
@@ -40,8 +40,8 @@ using asio::awaitable;
 using asio::use_awaitable;
 using asio::ip::tcp;
 
-// Accept the tokens of the form 'user:<id>:<name>', deny 'deny', and fail
-// on anything else.
+// Accept the tokens of the form 'user:<id>:<name>', deny 'deny', reject
+// 'forged' as invalid, and fail on anything else.
 //
 class token_authenticator: public authenticator
 {
@@ -51,6 +51,9 @@ public:
   {
     if (token == "deny")
       co_return nullopt;
+
+    if (token == "forged")
+      throw invalid_argument ("bad signature");
 
     if (!token.starts_with ("user:"))
       throw runtime_error ("platform unavailable");

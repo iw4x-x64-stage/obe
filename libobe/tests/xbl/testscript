@@ -1,0 +1,140 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+test.options += $src_base/key.pem
+
+# The XUID of key.pem, computed independently from the key's public point
+# (see RFC 7638 for the thumbprint):
+#
+# 0x0009 << 48 | first 6 bytes of SHA-256 of
+# {"crv":"P-256","kty":"EC","x":"<x>","y":"<y>"}
+#
+xuid = 2617487597627351
+
+: xuid
+:
+$* --xuid >"$xuid"
+
+: valid
+:
+$* <<EOI >>"EOO"
+token
+token
+gtg Big Tester
+token
+uhs 98765
+token
+nbf 299
+token
+nbf -4000
+exp -299
+token
+nbf -86399
+exp 1
+EOI
+user $xuid Tester
+user $xuid Big Tester
+user $xuid Tester
+user $xuid Tester
+user $xuid Tester
+user $xuid Tester
+EOO
+
+: form
+: Test the malformed tokens
+:
+$* <<EOI >>EOO
+token
+prefix XBL2.0 x=
+token
+prefix Bearer x=
+token
+uhs
+token
+header [1]
+token
+header {"alg":"ES256"}
+token
+alg RS256
+token
+x AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+token
+x AAAA
+token
+claims []
+token
+claims {"aud":"https://auth3.prod.demonware.net","nbf":"1","exp":2}
+EOI
+invalid: expected 'XBL3.0' token
+invalid: expected 'XBL3.0' token
+invalid: missing token user hash
+invalid: invalid token header: object expected
+invalid: invalid token header: object jwk expected
+invalid: unsupported token algorithm 'RS256'
+invalid: invalid token key: point not on curve
+invalid: invalid token key x: 3 bytes instead of 32
+invalid: invalid token claims: object expected
+invalid: invalid token claims: integer nbf expected
+EOO
+
+: signature
+: Test the tokens not signed by the key in their header
+:
+$* <<EOI >>EOO
+token
+tamper
+token
+signature AAAA
+token
+signature AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+EOI
+invalid: invalid token signature
+invalid: invalid token signature: 3 bytes instead of 64
+invalid: invalid token signature
+EOO
+
+: claims
+: Test the tokens with the claims we do not accept
+:
+$* <<EOI >>"EOO"
+token
+aud https://auth3.prod.demonware.net/
+token
+xui-uhs 4321
+token
+xid 2617487597627352
+token
+xid 0x9000000000000
+token
+gtg
+token
+gtg 0123456789012345678901234567890123456789012345678901234567890123
+EOI
+invalid: token is for 'https://auth3.prod.demonware.net/' instead of 'https://auth3.prod.demonware.net'
+invalid: no token claims for user hash '1234'
+invalid: token XUID 2617487597627352 instead of key XUID $xuid
+invalid: invalid token XUID '0x9000000000000'
+invalid: invalid token gamertag
+invalid: invalid token gamertag
+EOO
+
+: period
+: Test the tokens outside of their validity period
+:
+$* <<EOI >>EOO
+token
+nbf 301
+token
+nbf -4000
+exp -300
+token
+exp -60
+token
+nbf -1
+exp 86400
+EOI
+invalid: token is not valid yet
+invalid: token expired
+invalid: token expires before it is valid
+invalid: token validity period of 86401s exceeds 86400s
+EOO

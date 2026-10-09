@@ -18,16 +18,19 @@ EOE
 :
 $* <<EOI >>EOO 2>>~%EOE%
 POST /auth/ deny {"auth_task":44,"iv_seed":5,"title_id":1234}
+POST /auth/ forged {"auth_task":44,"iv_seed":5,"title_id":1234}
 POST /auth/ fail {"auth_task":44,"iv_seed":5,"title_id":1234}
 POST /auth/ user:1:a {"auth_task":44,"iv_seed":5,"title_id":4321}
 POST /auth/ user:1:a {"auth_task":45}
 EOI
+200 code 704
 200 code 704
 200 code 702
 200 code 703
 200 code 701
 EOO
 %.+: warning: authentication denied%
+%.+: warning: invalid platform token: bad signature%
 %.+: error: unable to authenticate: platform unavailable%
 %.+: warning: title 4321 not served%
 %.+: warning: invalid auth request: auth task 45 instead of 44%
