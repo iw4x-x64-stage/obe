@@ -1,0 +1,171 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: integers
+:
+$* <<EOI >>EOO
+int8 -128
+uint8 255
+int16 -2
+uint16 65535
+int32 -2147483648
+uint32 3735928559
+int64 -1
+uint64 18446744073709551615
+EOI
+05e0f82ffeffe6ffff00000000a277df56eff4ffffffffffffffaffeffffffffffffff01
+int8 -128
+uint8 255
+int16 -2
+uint16 65535
+int32 -2147483648
+uint32 3735928559
+int64 -1
+uint64 18446744073709551615
+EOO
+
+: values
+: Test the non-integer values in the type-checked and untyped forms
+:
+{{
+  +cat <<EOI >=input
+  bool true
+  bool false
+  float32 1.5
+  float64 -0.25
+  string abc
+  string
+  blob 0102ff
+  blob
+  EOI
+
+  $* <<<../input >>EOO : typed
+  c3a0010000ff38000000000000e85f182636060001261a0000000810f89f0800000000
+  bool true
+  bool false
+  float32 1.5
+  float64 -0.25
+  string abc
+  string
+  blob 0102ff
+  blob
+  EOO
+
+  $* -u <<<../input >>EOO : untyped
+  020000fe01000000000080fe0d131b0300180000000810f80700000000
+  bool true
+  bool false
+  float32 1.5
+  float64 -0.25
+  string abc
+  string
+  blob 0102ff
+  blob
+  EOO
+}}
+
+: ranged
+: Test the ranged values including the empty and full-width ranges
+:
+{{
+  +cat <<EOI >=input
+  ranged 0 31 7
+  ranged 10 10 10
+  ranged 100 355 355
+  EOI
+
+  $* <<<../input >>EOO : typed
+  1902000000401f000000872105000000a4000000c010190000001a0b0000f807
+  ranged 0 31 7
+  ranged 10 10 10
+  ranged 100 355 355
+  EOO
+
+  $* -u <<<../input >>EOO : untyped
+  ce3f
+  ranged 0 31 7
+  ranged 10 10 10
+  ranged 100 355 355
+  EOO
+}}
+
+: raw
+: Test the untagged bits, bytes, and bare type tags
+:
+$* <<EOI >>EOO
+bits 3 5
+bytes dead
+type 0
+EOI
+ebdd0a00
+bits 3 5
+bytes dead
+type 0
+EOO
+
+: parse
+: Test the parsing errors
+:
+{{
+  : empty
+  :
+  $* -p <'' 2>>EOE != 0
+  stdin:0: error: empty bit buffer
+  EOE
+
+  : type-mismatch
+  :
+  $* -p <<EOI 2>>EOE != 0
+  c701
+  uint32
+  EOI
+  stdin:1: error: expected uint32 instead of uchar8
+  EOE
+
+  : end
+  :
+  $* -p <<EOI >'uint8 7' 2>>EOE != 0
+  c701
+  uint8
+  uint8
+  EOI
+  stdin:14: error: unexpected end of bit buffer
+  EOE
+
+  : range-mismatch
+  :
+  $* -p <<EOI 2>>EOE != 0
+  1902000000401f000000872105000000a4000000c010190000001a0b0000f807
+  ranged 0 30
+  EOI
+  stdin:6: error: expected range [0 30] instead of [0 31]
+  EOE
+
+  : range-value
+  : Test an untyped value that fits the bits but not the range
+  :
+  $* -p <<EOI 2>>EOE != 0
+  0e
+  ranged 0 5
+  EOI
+  stdin:1: error: ranged value 7 out of range [0 5]
+  EOE
+
+  : string-size
+  :
+  $* -p <<EOI 2>>EOE != 0
+  61585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858585858581800
+  string
+  EOI
+  stdin:526: error: string longer than 64 characters
+  EOE
+
+  : blob-size
+  :
+  $* -p <<EOI 2>>EOE != 0
+  270a02000000
+  blob
+  EOI
+  stdin:6: error: blob of 65 bytes larger than 64 bytes
+  EOE
+}}
