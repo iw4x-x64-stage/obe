@@ -12,12 +12,16 @@
 #include <cstdint>
 #include <utility>   // to_underlying()
 #include <iostream>
+#include <exception> // exception_ptr, rethrow_exception()
 #include <stdexcept> // invalid_argument, runtime_error
 
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/core_names.h>
+
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/io_context.hpp>
 
 #include <libobe/base64.hxx>
 #include <libobe/authenticator-xbl.hxx>
@@ -28,9 +32,10 @@
 using namespace std;
 using namespace obe;
 
-// The time the tokens are verified at.
+// The time the tokens are verified at, unless verified by the
+// authenticator (see main()).
 //
-static const int64_t now (1700000000);
+static const int64_t fixed_now (1700000000);
 
 // The P-256 key pair.
 //
@@ -123,12 +128,13 @@ encode (const string& s)
                          s.size ()));
 }
 
-// Usage: argv[0] <key> [--xuid]
+// Usage: argv[0] <key> [--xuid|--authenticator]
 //
 // Make tokens signed with the P-256 private key (PEM) and print the result
 // of verifying them at the fixed time 1700000000 with the default settings:
 // 'user <XUID> <gamertag>' or 'invalid: <description>'. With --xuid, print
-// the key's XUID in decimal and exit.
+// the key's XUID in decimal and exit. With --authenticator, make the tokens
+// for the current time and verify them with xbl_authenticator.
 //
 // Each token starts with the 'token' line followed by the lines that
 // override its parts, one per line:
@@ -144,23 +150,33 @@ encode (const string& s)
 // xui-uhs <text>      The user hash in the claims (the uhs value).
 // xid <text>          The XUID (the key's XUID).
 // gtg <text>          The gamertag ('Tester').
-// claims <json>       The JWS claims, replacing the above six.
+// xui <json>          The user claims, replacing the above three.
+// claims <json>       The JWS claims, replacing the above seven.
 // signature <base64url>
 //                     The JWS signature (computed).
 // tamper              Change the claims after signing.
+// jws <text>          The JWS, replacing all of the above.
 //
 // The values extend to the end of the line.
 //
 int
 main (int argc, char* argv[])
 {
-  const bool xuid (argc == 3 && string (argv[2]) == "--xuid");
+  const string o (argc == 3 ? argv[2] : "");
+  const bool xuid (o == "--xuid");
+  const bool authenticator (o == "--authenticator");
 
-  if (argc != 2 && !xuid)
+  if (argc != 2 && !xuid && !authenticator)
   {
-    println (cerr, "usage: {} <key> [--xuid]", argv[0]);
+    println (cerr, "usage: {} <key> [--xuid|--authenticator]", argv[0]);
     return 1;
   }
+
+  const int64_t now (
+    authenticator
+    ? chrono::duration_cast<chrono::seconds> (
+        chrono::system_clock::now ().time_since_epoch ()).count ()
+    : fixed_now);
 
   try
   {
@@ -175,7 +191,7 @@ main (int argc, char* argv[])
 
     optional<map<string, string>> ov; // The current token's overrides.
 
-    auto verify = [&k, &u, &ov] ()
+    auto verify = [&k, &u, &ov, now, authenticator] ()
     {
       auto value = [&ov] (const string& n, string d)
       {
@@ -195,14 +211,20 @@ main (int argc, char* argv[])
                     base64url_encode (k.y));
 
       if (c.empty ())
-        c = format (R"({{"aud":"{}","nbf":{},"exp":{},)"
-                    R"("xui":[{{"uhs":"{}","xid":"{}","gtg":"{}"}}]}})",
+      {
+        const string xui (
+          value ("xui",
+                 format (R"([{{"uhs":"{}","xid":"{}","gtg":"{}"}}])",
+                         value ("xui-uhs", uhs),
+                         value ("xid", to_string (to_underlying (u))),
+                         value ("gtg", "Tester"))));
+
+        c = format (R"({{"aud":"{}","nbf":{},"exp":{},"xui":{}}})",
                     value ("aud", xbl_settings ().audience),
                     now + stoll (value ("nbf", "-60")),
                     now + stoll (value ("exp", "3600")),
-                    value ("xui-uhs", uhs),
-                    value ("xid", to_string (to_underlying (u))),
-                    value ("gtg", "Tester"));
+                    xui);
+      }
 
       const string d (encode (h) + '.' + encode (c));
 
@@ -215,17 +237,42 @@ main (int argc, char* argv[])
       if (ov->contains ("tamper"))
         jws = encode (h) + '.' + encode (c + ' ') + '.' + s;
 
+      jws = value ("jws", move (jws));
+
       const string t (value ("prefix", "XBL3.0 x=") + uhs + ';' + jws);
 
       try
       {
-        const auth_identity id (
-          verify_xbl_token (t,
-                            timestamp (chrono::seconds (now)),
-                            xbl_settings ()));
+        optional<auth_identity> id;
 
-        assert (to_underlying (id.license) == 0);
-        println ("user {} {}", to_underlying (id.user), id.user_name);
+        if (authenticator)
+        {
+          boost::asio::io_context ctx;
+          xbl_authenticator a {xbl_settings ()};
+          exception_ptr e;
+
+          boost::asio::co_spawn (
+            ctx,
+            a.authenticate (t, title_id {}),
+            [&id, &e] (exception_ptr x, optional<auth_identity> r)
+          {
+            e = x;
+            id = move (r);
+          });
+          ctx.run ();
+
+          if (e)
+            rethrow_exception (e);
+
+          assert (id);
+        }
+        else
+          id = verify_xbl_token (t,
+                                 timestamp (chrono::seconds (now)),
+                                 xbl_settings ());
+
+        assert (to_underlying (id->license) == 0);
+        println ("user {} {}", to_underlying (id->user), id->user_name);
       }
       catch (const invalid_argument& e)
       {

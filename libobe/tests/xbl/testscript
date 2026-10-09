@@ -64,6 +64,22 @@ token
 claims []
 token
 claims {"aud":"https://auth3.prod.demonware.net","nbf":"1","exp":2}
+token
+jws !!!.e30.AAAA
+token
+jws bm9wZQ.e30.AAAA
+token
+header {"jwk":{}}
+token
+header {"alg":"ES256","jwk":{"kty":"RSA","crv":"P-256"}}
+token
+x !!!!
+token
+jws a.b
+token
+jws a.b.c.d
+token
+signature !!!!
 EOI
 invalid: expected 'XBL3.0' token
 invalid: expected 'XBL3.0' token
@@ -75,6 +91,14 @@ invalid: invalid token key: point not on curve
 invalid: invalid token key x: 3 bytes instead of 32
 invalid: invalid token claims: object expected
 invalid: invalid token claims: integer nbf expected
+invalid: invalid token header: invalid base64 character
+invalid: invalid token header: syntax error
+invalid: invalid token header: string alg expected
+invalid: unsupported token key type
+invalid: invalid token key x: invalid base64 character
+invalid: invalid token signature form
+invalid: invalid token signature form
+invalid: invalid token signature: invalid base64 character
 EOO
 
 : signature
@@ -109,6 +133,10 @@ token
 gtg
 token
 gtg 0123456789012345678901234567890123456789012345678901234567890123
+token
+xui {}
+token
+xui [1]
 EOI
 invalid: token is for 'https://auth3.prod.demonware.net/' instead of 'https://auth3.prod.demonware.net'
 invalid: no token claims for user hash '1234'
@@ -116,6 +144,8 @@ invalid: token XUID 2617487597627352 instead of key XUID $xuid
 invalid: invalid token XUID '0x9000000000000'
 invalid: invalid token gamertag
 invalid: invalid token gamertag
+invalid: invalid token claims: array xui expected
+invalid: invalid token claims: object xui entry expected
 EOO
 
 : period
@@ -137,4 +167,17 @@ invalid: token is not valid yet
 invalid: token expired
 invalid: token expires before it is valid
 invalid: token validity period of 86401s exceeds 86400s
+EOO
+
+: authenticator
+: Test verifying the tokens with the authenticator at the current time
+:
+$* --authenticator <<EOI >>"EOO"
+token
+token
+nbf -7200
+exp -3600
+EOI
+user $xuid Tester
+invalid: token expired
 EOO
