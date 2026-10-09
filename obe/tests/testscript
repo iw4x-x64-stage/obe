@@ -113,8 +113,9 @@ EOO
     EOE
 
     : valid
-    : Test that valid publisher files get loaded (and so the startup fails
-    : later, loading the certificate)
+    : Test that valid publisher files get loaded
+    :
+    : The startup then fails later, loading the certificate.
     :
     mkdir -p files/2010;
     echo 'version 1' >=files/2010/playlists.patch2;
