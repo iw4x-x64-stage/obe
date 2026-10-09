@@ -75,9 +75,8 @@ namespace std
   template <obe::named_enum T>
   struct formatter<T, char>: formatter<string_view>
   {
-    template <obe::char_format_context C>
     auto
-    format (T v, C& c) const
+    format (T v, obe::char_format_context auto& c) const
     {
       return formatter<string_view>::format (to_string (v), c);
     }

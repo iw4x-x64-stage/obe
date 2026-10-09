@@ -274,9 +274,8 @@ namespace obe
 
   // Return the file header of the file record or its header view.
   //
-  template <file_header_record R>
   static file_header
-  to_header (const R& r)
+  to_header (const file_header_record auto& r)
   {
     file_header h;
     h.id = r.id;

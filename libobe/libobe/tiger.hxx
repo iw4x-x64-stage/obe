@@ -53,9 +53,8 @@ namespace obe
     // Append an unsigned integral value in the little-endian byte order (the
     // Demonware wire order), regardless of the host byte order.
     //
-    template <std::unsigned_integral T>
     void
-    append (T);
+    append (std::unsigned_integral auto);
 
     // Check if any data has been hashed.
     //

@@ -194,9 +194,8 @@ public:
 
   // Send a bit task.
   //
-  template <invocable<bit_serializer&> F>
   awaitable<void>
-  bit_task (uint8_t service, uint8_t op, F params)
+  bit_task (uint8_t service, uint8_t op, invocable<bit_serializer&> auto params)
   {
     bytes p {service};
     {
