@@ -6,7 +6,6 @@
 #include <print>
 #include <random>
 #include <cstdio>  // stderr
-#include <sstream>
 #include <variant>
 #include <exception> // rethrow_exception()
 
@@ -21,6 +20,7 @@
 #include <boost/asio/experimental/awaitable_operators.hpp>
 
 #include <libobe/frame.hxx>
+#include <libobe/endpoint.hxx>
 #include <libobe/bit-parser.hxx>
 #include <libobe/bit-serializer.hxx>
 
@@ -199,12 +199,7 @@ namespace obe
     boost::system::error_code ec;
     const tcp::endpoint e (s.remote_endpoint (ec));
 
-    if (ec)
-      return "<unknown>";
-
-    ostringstream os;
-    os << e;
-    return os.str ();
+    return ec ? string ("<unknown>") : format ("{}", e);
   }
 
   lsg_server::session::

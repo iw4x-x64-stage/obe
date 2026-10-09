@@ -29,6 +29,7 @@
 #include <openssl/sha.h>
 
 #include <libobe/version.hxx>
+#include <libobe/endpoint.hxx>
 #include <libobe/pgsql.hxx>
 #include <libobe/ticket.hxx>
 #include <libobe/service.hxx>
@@ -155,25 +156,6 @@ namespace obe
   // The diagnostics verbosity (see --verbose).
   //
   static uint16_t verb (1);
-
-  // Return the endpoint as a string (for example, 127.0.0.1:3074 or
-  // [::1]:3074).
-  //
-  static string
-  to_string (const tcp::endpoint& e)
-  {
-    ostringstream os;
-    os << e;
-    return os.str ();
-  }
-
-  static string
-  to_string (const udp::endpoint& e)
-  {
-    ostringstream os;
-    os << e;
-    return os.str ();
-  }
 
   // Return the address. Issue diagnostics and throw failed if it is
   // invalid.
@@ -693,7 +675,7 @@ namespace obe
     catch (const boost::system::system_error& e)
     {
       println (cerr, "error: unable to bind bandwidth test socket to {}: {}",
-               to_string (be), e.code ().message ());
+               be, e.code ().message ());
       throw failed ();
     }
 
@@ -718,7 +700,7 @@ namespace obe
                              const boost::system::system_error& e)
     {
       println (cerr, "error: unable to listen on {}: {}",
-               to_string (ep), e.code ().message ());
+               ep, e.code ().message ());
       return failed ();
     };
 
@@ -755,18 +737,18 @@ namespace obe
     if (verb >= 2)
       println (cerr,
                "listening on {} and {}, testing bandwidth on {}",
-               to_string (a->endpoint ()),
-               to_string (g->endpoint ()),
-               to_string (bandwidth->endpoint ()));
+               a->endpoint (),
+               g->endpoint (),
+               bandwidth->endpoint ());
 
     // Flush so that whoever reads the endpoints gets them right away.
     //
     if (o.print_endpoints ())
     {
       println ("{}\n{}\n{}",
-               to_string (a->endpoint ()),
-               to_string (g->endpoint ()),
-               to_string (bandwidth->endpoint ()));
+               a->endpoint (),
+               g->endpoint (),
+               bandwidth->endpoint ());
       fflush (stdout);
     }
 

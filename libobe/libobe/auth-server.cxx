@@ -5,7 +5,6 @@
 
 #include <print>
 #include <cstdio> // stderr
-#include <sstream>
 
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
@@ -15,6 +14,8 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
+
+#include <libobe/endpoint.hxx>
 
 using namespace std;
 
@@ -164,12 +165,7 @@ namespace obe
       boost::system::error_code ec;
       const tcp::endpoint e (s.remote_endpoint (ec));
 
-      ostringstream os;
-      if (ec)
-        os << "<unknown>";
-      else
-        os << e;
-      n = os.str ();
+      n = ec ? string ("<unknown>") : format ("{}", e);
     }
 
     beast::ssl_stream<beast::tcp_stream> ts (move (s), tls_);
