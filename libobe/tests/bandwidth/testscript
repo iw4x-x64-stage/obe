@@ -43,7 +43,9 @@ EOO
 : Test the upload and download
 :
 {{
-  $* <<EOI >>EOO : complete
+  : complete
+  :
+  $* <<EOI >>EOO
   request 1 1
   upload 1 0 1 2 3
   download 1
@@ -54,7 +56,9 @@ EOO
   results 120 1 0 3
   EOO
 
-  $* <<EOI >>EOO : loss
+  : loss
+  :
+  $* <<EOI >>EOO
   request 1 1
   upload 1 0 1
   download 1
@@ -103,13 +107,17 @@ EOO
 : Test the address offered to the client
 :
 {{
-  $* <<EOI >>EOO : mapped
+  : mapped
+  :
+  $* <<EOI >>EOO
   request 1 0 ::ffff:127.0.0.1
   EOI
   accepted 127.0.0.1
   EOO
 
-  $* <<EOI >>EOO 2>>EOE : ipv6
+  : ipv6
+  :
+  $* <<EOI >>EOO 2>>EOE
   request 1 0 ::1
   EOI
   rejected 1810
@@ -117,7 +125,9 @@ EOO
   warning: no IPv4 address to offer bandwidth test to connection 1
   EOE
 
-  $* --public-address 192.0.2.1 --public-port 3075 <<EOI >>EOO : public
+  : public
+  :
+  $* --public-address 192.0.2.1 --public-port 3075 <<EOI >>EOO
   request 1 0 ::1
   EOI
   accepted 192.0.2.1

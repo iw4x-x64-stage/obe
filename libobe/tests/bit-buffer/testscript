@@ -39,7 +39,9 @@ EOO
   blob
   EOI
 
-  $* <<<../input >>EOO : typed
+  : typed
+  :
+  $* <<<../input >>EOO
   c3a0010000ff38000000000000e85f182636060001261a0000000810f89f0800000000
   bool true
   bool false
@@ -51,7 +53,9 @@ EOO
   blob
   EOO
 
-  $* -u <<<../input >>EOO : untyped
+  : untyped
+  :
+  $* -u <<<../input >>EOO
   020000fe01000000000080fe0d131b0300180000000810f80700000000
   bool true
   bool false
@@ -74,14 +78,18 @@ EOO
   ranged 100 355 355
   EOI
 
-  $* <<<../input >>EOO : typed
+  : typed
+  :
+  $* <<<../input >>EOO
   1902000000401f000000872105000000a4000000c010190000001a0b0000f807
   ranged 0 31 7
   ranged 10 10 10
   ranged 100 355 355
   EOO
 
-  $* -u <<<../input >>EOO : untyped
+  : untyped
+  :
+  $* -u <<<../input >>EOO
   ce3f
   ranged 0 31 7
   ranged 10 10 10
