@@ -1,0 +1,358 @@
+#! /usr/bin/env bash
+
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+# Set up a local PostgreSQL server for obe.
+#
+# Specifically:
+#
+# - Install the PostgreSQL server unless already installed.
+#
+# - Initialize the database cluster unless already initialized (only
+#   necessary on Fedora, where the package doesn't do it).
+#
+# - Enable and start the PostgreSQL service.
+#
+# - Create the database role and the database it owns unless they already
+#   exist.
+#
+# - Optionally, allow a role (normally the developer's) to create the test
+#   databases (see config.libobe.test.pgsql in libobe/tests/build/root.build).
+#
+# The roles authenticate with the peer method over the local UNIX-domain
+# socket, which is the server's default: the role name is the name of the
+# system user that runs obe (or the tests) and there are no passwords. A
+# server accessed over the network or with passwords needs its own
+# authentication configuration (see pg_hba.conf in the PostgreSQL
+# documentation).
+#
+# Note that the script doesn't create the database schema: run the new obe
+# with --migrate for that (see the obe manual).
+#
+# The script is written for Fedora and Debian-based distributions and uses
+# sudo for everything that requires the superuser or the postgres user. It
+# is safe to run repeatedly: the steps that are already done are skipped.
+#
+# Options:
+#
+# --database <name>
+#
+#   The database to create. The default is obe.
+#
+# --role <name>
+#
+#   The role to create and make the owner of the database. It should be the
+#   name of the system user that runs obe. The default is obe.
+#
+# --test-role <name>
+#
+#   Create the role, unless it exists, and allow it to create databases
+#   (which the libobe tests do). Normally, this is the name of the developer's
+#   system user.
+#
+# --options-file <file>
+#
+#   Read additional options from <file>. Each option should appear on a
+#   separate line optionally followed by space or equal sign (=) and an
+#   option value. Empty lines and lines starting with # are ignored.
+#
+# --print-only
+#
+#   Print to stdout what would be done without actually doing anything.
+#
+# --yes|-y
+#
+#   Don't prompt for confirmation before setting up.
+#
+usage="usage: $0 [<options>]"
+
+owd="$(pwd)"
+trap "{ cd '$owd'; exit 1; }" ERR
+set -o errtrace     # Trap in functions and subshells.
+set -o pipefail     # Fail if any pipeline command fails.
+shopt -s lastpipe   # Execute last pipeline command in the current shell.
+
+function info () { echo "$*" 1>&2; }
+function error () { info "error: $*"; exit 1; }
+
+# Trace and run a command, making its diagnostics distinguishable from ours.
+#
+function run () # <cmd> <arg>...
+{
+  info "+ $*"
+  "$@"
+}
+
+# Run the SQL statement as the postgres user and print the result without
+# the headers and alignment.
+#
+function query () # <statement> [<database>]
+{
+  sudo -u postgres psql -X -q -v ON_ERROR_STOP=1 -tA \
+    -d "${2:-postgres}" -c "$1"
+}
+
+# As above but trace the statement.
+#
+function execute () # <statement> [<database>]
+{
+  info "+ psql: $1"
+  query "$@" >/dev/null
+}
+
+# Append the options from the file to args, expanding the nested options
+# files, if any.
+#
+args=()
+
+function read_options () # <file>
+{
+  local f="$1"
+  local l o v
+
+  if [[ ! -f "$f" ]]; then
+    error "unable to read options file '$f'"
+  fi
+
+  while IFS= read -r l || [[ -n "$l" ]]; do
+
+    # Strip the leading and trailing whitespaces.
+    #
+    l="${l#"${l%%[![:space:]]*}"}"
+    l="${l%"${l##*[![:space:]]}"}"
+
+    if [[ -z "$l" || "$l" == \#* ]]; then
+      continue
+    fi
+
+    # Split the option and its value, if any.
+    #
+    o="${l%%[ =]*}"
+
+    if [[ "$o" == "$l" ]]; then
+      args+=("$o")
+      continue
+    fi
+
+    v="${l#"$o"}"
+    v="${v#[ =]}"
+    v="${v#"${v%%[![:space:]]*}"}"
+
+    if [[ "$o" == "--options-file" ]]; then
+      read_options "$v"
+    else
+      args+=("$o" "$v")
+    fi
+  done <"$f"
+}
+
+# Expand the options files on the command line, keeping the options in the
+# order they appear.
+#
+while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--options-file" ]]; then
+    shift
+
+    if [[ "$#" -eq 0 || -z "$1" ]]; then
+      error "options file expected after --options-file"
+    fi
+
+    read_options "$1"
+  else
+    args+=("$1")
+  fi
+
+  shift
+done
+
+set -- "${args[@]}"
+
+database=obe
+role=obe
+test_role=
+print_only=
+yes=
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      info "$usage"
+      info
+      info "Options:"
+      info "  --database <name>     The database to create (obe by default)."
+      info "  --role <name>         The database owner role (obe by default)."
+      info "  --test-role <name>    Allow the role to create test databases."
+      info "  --options-file <file> Read additional options from the file."
+      info "  --print-only          Only print what would be done."
+      info "  --yes|-y              Don't prompt for confirmation."
+      info
+      info "See the comments at the beginning of $0 for details."
+      exit 0
+      ;;
+    --database|--role|--test-role)
+      o="$1"
+      shift
+
+      if [[ "$#" -eq 0 || -z "$1" ]]; then
+        error "name expected after $o"
+      fi
+
+      case "$o" in
+        --database)  database="$1"  ;;
+        --role)      role="$1"      ;;
+        --test-role) test_role="$1" ;;
+      esac
+
+      shift
+      ;;
+    --print-only)
+      print_only=true
+      shift
+      ;;
+    -y|--yes)
+      yes=true
+      shift
+      ;;
+    # Catch invalid options.
+    #
+    -*)
+      error "unknown option: $1"
+      ;;
+    *)
+      error "unexpected argument: $1"
+      ;;
+  esac
+done
+
+# Make sure the names can be used in the SQL statements as is (unquoted
+# identifiers, which PostgreSQL folds to lower case).
+#
+for n in "$database" "$role" ${test_role:+"$test_role"}; do
+  if [[ ! "$n" =~ ^[a-z_][a-z0-9_]*$ || "${#n}" -gt 63 ]]; then
+    error "invalid name '$n': lower-case letters, digits, and underscores \
+expected"
+  fi
+done
+
+# Figure out the distribution's package manager and PostgreSQL server
+# package.
+#
+if [[ ! -f /etc/os-release ]]; then
+  error "unable to determine distribution: no /etc/os-release"
+fi
+
+ids="$(. /etc/os-release && echo "$ID $ID_LIKE")"
+
+case " $ids " in
+  *" fedora "*|*" rhel "*)
+    pm=dnf
+    package=postgresql-server
+    ;;
+  *" debian "*|*" ubuntu "*)
+    pm=apt-get
+    package=postgresql
+    ;;
+  *)
+    error "unsupported distribution '$ids'"
+    ;;
+esac
+
+for c in sudo "$pm"; do
+  if ! command -v "$c" >/dev/null; then
+    error "unable to execute $c: command not found"
+  fi
+done
+
+# Print the plan and ask for confirmation.
+#
+plan="set up PostgreSQL database '$database' owned by role '$role'"
+
+if [[ "$test_role" ]]; then
+  plan="$plan, allowing role '$test_role' to create test databases"
+fi
+
+if [[ "$print_only" ]]; then
+  echo "$plan"
+  exit 0
+fi
+
+while [[ ! "$yes" ]]; do
+  printf '%s? [y/n]: ' "$plan" 1>&2
+
+  if ! read opt; then
+    info
+    error "unable to read answer, use --yes to set up without asking"
+  fi
+
+  case "$opt" in
+    y) yes=true ;;
+    n) exit 1   ;;
+  esac
+done
+
+# Install the PostgreSQL server.
+#
+case "$pm" in
+  dnf)
+    if ! rpm -q "$package" >/dev/null 2>&1; then
+      run sudo dnf install --assumeyes "$package"
+    fi
+    ;;
+  apt-get)
+    if ! dpkg-query -W -f '${Status}' "$package" 2>/dev/null | \
+         grep -q 'install ok installed'; then
+      run sudo apt-get --yes update
+      run sudo apt-get --yes install --no-install-recommends "$package"
+    fi
+    ;;
+esac
+
+# Initialize the database cluster. On Debian the package creates and starts
+# the cluster.
+#
+if [[ "$pm" == dnf ]] && ! sudo test -f /var/lib/pgsql/data/PG_VERSION; then
+  run sudo postgresql-setup --initdb
+fi
+
+# Enable and start the service.
+#
+run sudo systemctl enable --now postgresql
+
+# Create the roles and the database.
+#
+# Return true if the role exists.
+#
+function role_exists () # <name>
+{
+  [[ "$(query "SELECT 1 FROM pg_roles WHERE rolname = '$1'")" ]]
+}
+
+if ! role_exists "$role"; then
+  execute "CREATE ROLE $role LOGIN"
+fi
+
+if [[ -z "$(query \
+  "SELECT 1 FROM pg_database WHERE datname = '$database'")" ]]; then
+  execute "CREATE DATABASE $database OWNER $role TEMPLATE template0 \
+ENCODING 'UTF8'"
+fi
+
+if [[ "$test_role" ]]; then
+  if ! role_exists "$test_role"; then
+    execute "CREATE ROLE $test_role LOGIN CREATEDB"
+  else
+    execute "ALTER ROLE $test_role CREATEDB"
+  fi
+fi
+
+# Make sure the database is accessible.
+#
+if [[ "$(query 'SELECT current_database ()' "$database")" != "$database" ]]
+then
+  error "unable to access database '$database'"
+fi
+
+info "database '$database' is ready"
+info "  info: run 'obe --db-name $database --migrate' as user '$role' to \
+create its schema"
