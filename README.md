@@ -3,10 +3,9 @@
 `obe` serves Demonware online services that IW4x connects to:
 authentication, the lobby service gateway, and the services behind it
 (matchmaking, messaging, storage, performance reporting, and the
-bandwidth test). Its state lives in PostgreSQL.
+bandwidth test).
 
-The protocol follows the x64 edition of the game client. The repository
-holds two packages:
+The repository holds two packages:
 
 * [`obe`](obe/README.md): the server executable.
 * [`libobe`](libobe/README.md): the protocol and service library.
