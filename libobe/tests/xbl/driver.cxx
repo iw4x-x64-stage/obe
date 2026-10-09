@@ -124,8 +124,7 @@ static string
 encode (const string& s)
 {
   return base64url_encode (
-    span<const uint8_t> (reinterpret_cast<const uint8_t*> (s.data ()),
-                         s.size ()));
+    span (reinterpret_cast<const uint8_t*> (s.data ()), s.size ()));
 }
 
 // Usage: argv[0] <key> [--xuid|--authenticator]

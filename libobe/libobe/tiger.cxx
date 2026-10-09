@@ -236,8 +236,7 @@ namespace obe
   void tiger::
   append (string_view s)
   {
-    append (span<const uint8_t> (reinterpret_cast<const uint8_t*> (s.data ()),
-                                 s.size ()));
+    append (span (reinterpret_cast<const uint8_t*> (s.data ()), s.size ()));
   }
 
   const tiger::digest_type& tiger::
