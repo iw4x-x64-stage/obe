@@ -1,0 +1,61 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: vectors
+: Test the reference vectors from the Tiger paper
+:
+$* <<EOI >>EOO
+
+abc
+Tiger
+EOI
+3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3
+2aab1484e8c158f2bfb8c5ff41b57a525129131c957b5f93
+dd00230799f5009fec6debc838bb6a27df2b9d6f110c7937
+EOO
+
+: padding
+: Test the message lengths around the padding and block boundaries
+:
+{{
+  +cat <<EOI >=input
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  EOI
+
+  +cat <<EOO >=output
+  ec03564f7ff39bfba848b5ab3ecdf21a1ea371549a7a62e3
+  45fdd791e96900f7ec26c2923a86f8109a67fb45e50c16c9
+  9366604ea109e48ed763caabb2d5633b4946eb295ef5781a
+  7503f313bbea92eddca90c5d3fcc4368237457df366fb76e
+  cbda40c307784ada92118d491e32b87bbb8ddc8b4f465682
+  EOO
+
+  $*    <<<../input >>>../output : whole
+  $* -c <<<../input >>>../output : chunked
+}}
+
+: seed
+: Test hashing of the frame cipher seeds
+:
+$* -u <<EOI >>EOO
+0
+1
+3735928559
+4294967295
+EOI
+605d1b8c132bf5d16f1a8bc2451733f7f0ff57fd5f49e298
+cd305316b8f4a516a2fc1ed81e50b5be34aba8f627fdf090
+95512a6077beade89c6d64ff880ff2e431bb377672343f2a
+cd0870e16add94b6d8cdb166aa6c8aa3fd3a463c69ce7b32
+EOO
+
+: invalid-seed
+: Test handling of an invalid seed value
+:
+$* -u <'4294967296' 2>>EOE != 0
+error: invalid value '4294967296'
+EOE
