@@ -1,0 +1,19 @@
+: 1
+name: libobe
+version: 0.1.0-a.0.z
+type: lib
+language: c++
+project: obe
+summary: Demonware protocol library for IW4x projects and infrastructure.
+license: other: GPL-3.0-only with IW4x Linking Exception 1.1
+topics: development, Demonware, network protocol
+description-file: README.md
+changes-file: NEWS
+url: https://iw4x.io/projects/obe/
+doc-url: https://iw4x.io/projects/obe/doc/
+src-url: https://github.com/iw4x-x64-stage/obe
+email: wroy@proton.me
+build-error-email: wroy@proton.me
+depends: * build2 >= 0.18.0
+depends: * bpkg >= 0.18.0
+builds: default
