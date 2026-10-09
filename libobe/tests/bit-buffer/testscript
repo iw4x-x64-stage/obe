@@ -140,6 +140,18 @@ EOO
   stdin:14: error: unexpected end of bit buffer
   EOE
 
+  : bytes-end
+  : Test the raw bytes longer than the rest of the buffer
+  :
+  : The check precedes the reading, so the error is at the bytes' start.
+  :
+  $* -p <<EOI 2>>EOE != 0
+  00ab
+  bytes 000000
+  EOI
+  stdin:1: error: unexpected end of bit buffer
+  EOE
+
   : range-mismatch
   :
   $* -p <<EOI 2>>EOE != 0
