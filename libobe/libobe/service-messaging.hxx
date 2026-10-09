@@ -50,7 +50,7 @@ namespace obe
   public:
     // Return the name of the user (empty if unknown).
     //
-    using name_function = std::move_only_function<string (user_id)>;
+    using name_function = std::move_only_function<string (user_id) const>;
 
     // The largest message the client accepts (larger ones overflow its
     // buffer).
@@ -76,7 +76,7 @@ namespace obe
 
   private:
     lsg_registry&            registry_;
-    name_function            name_;
+    const name_function      name_;
     const messaging_settings settings_;
     uint64_t                 last_message_ = 0; // Last message id.
   };
