@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <compare> // strong_ordering
 #include <utility> // to_underlying()
 
@@ -61,6 +62,17 @@
                to(std::to_underlying (?))    \
                from(obe::file_id {(?)})
 
+// The timestamps are stored as nanoseconds since the epoch, which fits until
+// the year 2262.
+//
+#pragma db map type(obe::timestamp)                                     \
+  as(std::int64_t)                                                      \
+  to(std::chrono::duration_cast<std::chrono::nanoseconds> (             \
+       (?).time_since_epoch ()).count ())                               \
+  from(obe::timestamp (                                                 \
+    std::chrono::duration_cast<obe::duration> (                         \
+      std::chrono::nanoseconds (?))))
+
 namespace obe
 {
   #pragma db value(bytes) type("BYTEA")
@@ -75,26 +87,24 @@ namespace obe
   {
   public:
     #pragma db id auto
-    file_id  id;
+    file_id   id;
 
-    title_id title;
-    user_id  owner;
-    string   name;
+    title_id  title;
+    user_id   owner;
+    string    name;
 
-    bool     flag1;
-    bool     flag2;
+    bool      flag1;
+    bool      flag2;
 
-    // Nanoseconds since the epoch (which fits until the year 2262).
-    //
-    int64_t  created;
-    int64_t  modified;
+    timestamp created;
+    timestamp modified;
 
     // The size of the data, so that it can be listed without loading the
     // data.
     //
-    uint32_t size;
+    uint32_t  size;
 
-    bytes    data;
+    bytes     data;
 
     #pragma db index("file_title_owner_name_i") \
       unique members(title, owner, name)
@@ -105,15 +115,15 @@ namespace obe
   #pragma db view object(file_record)
   struct file_record_header
   {
-    file_id  id;
-    title_id title;
-    user_id  owner;
-    string   name;
-    bool     flag1;
-    bool     flag2;
-    int64_t  created;
-    int64_t  modified;
-    uint32_t size;
+    file_id   id;
+    title_id  title;
+    user_id   owner;
+    string    name;
+    bool      flag1;
+    bool      flag2;
+    timestamp created;
+    timestamp modified;
+    uint32_t  size;
   };
 
   // The number of stored files.

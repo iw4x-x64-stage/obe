@@ -116,7 +116,7 @@ namespace odb
         i.id_value,
         i.id_null);
 
-      // From model.hxx:59:12
+      // From model.hxx:60:12
       id = obe::file_id 
       {
          (vt) 
@@ -144,7 +144,7 @@ namespace odb
         i.id_value,
         i.id_null);
 
-      // From model.hxx:59:12
+      // From model.hxx:60:12
       id = obe::file_id 
       {
          (vt) 
@@ -333,7 +333,7 @@ namespace odb
 
       bool is_null (false);
 
-      // From model.hxx:49:12
+      // From model.hxx:50:12
       ::uint32_t const& vt =
         std::to_underlying (v);
 
@@ -352,7 +352,7 @@ namespace odb
 
       bool is_null (false);
 
-      // From model.hxx:54:12
+      // From model.hxx:55:12
       ::uint64_t const& vt =
         std::to_underlying (v);
 
@@ -418,30 +418,38 @@ namespace odb
     // created
     //
     {
-      ::int64_t const& v =
+      ::obe::timestamp const& v =
         o.created;
 
       bool is_null (false);
 
+      // From model.hxx:68:12
+      ::int64_t const& vt =
+        std::chrono::duration_cast < std::chrono::nanoseconds > ((v).time_since_epoch ()).count ();
+
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_image (
-        i.created_value, is_null, v);
+        i.created_value, is_null, vt);
       i.created_null = is_null;
     }
 
     // modified
     //
     {
-      ::int64_t const& v =
+      ::obe::timestamp const& v =
         o.modified;
 
       bool is_null (false);
 
+      // From model.hxx:68:12
+      ::int64_t const& vt =
+        std::chrono::duration_cast < std::chrono::nanoseconds > ((v).time_since_epoch ()).count ();
+
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_image (
-        i.modified_value, is_null, v);
+        i.modified_value, is_null, vt);
       i.modified_null = is_null;
     }
 
@@ -509,7 +517,7 @@ namespace odb
         i.id_value,
         i.id_null);
 
-      // From model.hxx:59:12
+      // From model.hxx:60:12
       v = obe::file_id 
       {
          (vt) 
@@ -531,7 +539,7 @@ namespace odb
         i.title_value,
         i.title_null);
 
-      // From model.hxx:49:12
+      // From model.hxx:50:12
       v = obe::title_id 
       {
          (vt) 
@@ -553,7 +561,7 @@ namespace odb
         i.owner_value,
         i.owner_null);
 
-      // From model.hxx:54:12
+      // From model.hxx:55:12
       v = obe::user_id 
       {
          (vt) 
@@ -606,29 +614,39 @@ namespace odb
     // created
     //
     {
-      ::int64_t& v =
+      ::obe::timestamp& v =
         o.created;
+
+      ::int64_t vt;
 
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.created_value,
         i.created_null);
+
+      // From model.hxx:68:12
+      v = obe::timestamp (std::chrono::duration_cast < obe::duration > (std::chrono::nanoseconds (vt)));
     }
 
     // modified
     //
     {
-      ::int64_t& v =
+      ::obe::timestamp& v =
         o.modified;
+
+      ::int64_t vt;
 
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.modified_value,
         i.modified_null);
+
+      // From model.hxx:68:12
+      v = obe::timestamp (std::chrono::duration_cast < obe::duration > (std::chrono::nanoseconds (vt)));
     }
 
     // size
@@ -667,7 +685,7 @@ namespace odb
     {
       bool is_null (false);
 
-      // From model.hxx:59:12
+      // From model.hxx:60:12
       ::uint64_t const& vt =
         std::to_underlying (id);
 
@@ -1293,7 +1311,7 @@ namespace odb
         i.id_value,
         i.id_null);
 
-      // From model.hxx:59:12
+      // From model.hxx:60:12
       v = obe::file_id 
       {
          (vt) 
@@ -1315,7 +1333,7 @@ namespace odb
         i.title_value,
         i.title_null);
 
-      // From model.hxx:49:12
+      // From model.hxx:50:12
       v = obe::title_id 
       {
          (vt) 
@@ -1337,7 +1355,7 @@ namespace odb
         i.owner_value,
         i.owner_null);
 
-      // From model.hxx:54:12
+      // From model.hxx:55:12
       v = obe::user_id 
       {
          (vt) 
@@ -1390,29 +1408,39 @@ namespace odb
     // created
     //
     {
-      ::int64_t& v =
+      ::obe::timestamp& v =
         o.created;
+
+      ::int64_t vt;
 
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.created_value,
         i.created_null);
+
+      // From model.hxx:68:12
+      v = obe::timestamp (std::chrono::duration_cast < obe::duration > (std::chrono::nanoseconds (vt)));
     }
 
     // modified
     //
     {
-      ::int64_t& v =
+      ::obe::timestamp& v =
         o.modified;
+
+      ::int64_t vt;
 
       pgsql::value_traits<
           ::int64_t,
           pgsql::id_bigint >::set_value (
-        v,
+        vt,
         i.modified_value,
         i.modified_null);
+
+      // From model.hxx:68:12
+      v = obe::timestamp (std::chrono::duration_cast < obe::duration > (std::chrono::nanoseconds (vt)));
     }
 
     // size
@@ -1717,7 +1745,7 @@ namespace odb
 
       bool is_null (false);
 
-      // From model.hxx:49:12
+      // From model.hxx:50:12
       ::uint32_t const& vt =
         std::to_underlying (v);
 
@@ -1751,7 +1779,7 @@ namespace odb
 
       bool is_null (false);
 
-      // From model.hxx:54:12
+      // From model.hxx:55:12
       ::uint64_t const& vt =
         std::to_underlying (v);
 
@@ -1789,7 +1817,7 @@ namespace odb
         i.title_value,
         i.title_null);
 
-      // From model.hxx:49:12
+      // From model.hxx:50:12
       v = obe::title_id 
       {
          (vt) 
@@ -1825,7 +1853,7 @@ namespace odb
         i.user_value,
         i.user_null);
 
-      // From model.hxx:54:12
+      // From model.hxx:55:12
       v = obe::user_id 
       {
          (vt) 

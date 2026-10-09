@@ -262,22 +262,6 @@ namespace obe
     throw database_error ("database error: {}", describe (e));
   }
 
-  // Return the timestamp as nanoseconds since the epoch and back.
-  //
-  static int64_t
-  to_nanoseconds (timestamp t)
-  {
-    return chrono::duration_cast<chrono::nanoseconds> (
-      t.time_since_epoch ()).count ();
-  }
-
-  static timestamp
-  to_timestamp (int64_t ns)
-  {
-    return timestamp (
-      chrono::duration_cast<duration> (chrono::nanoseconds (ns)));
-  }
-
   // Return the file header of the file record or its header view.
   //
   template <typename R>
@@ -288,8 +272,8 @@ namespace obe
   {
     file_header h;
     h.id = r.id;
-    h.created = to_timestamp (r.created);
-    h.modified = to_timestamp (r.modified);
+    h.created = r.created;
+    h.modified = r.modified;
     h.flags = {r.flag1, r.flag2};
     h.owner = r.owner;
     h.name = r.name;
@@ -333,7 +317,7 @@ namespace obe
       using query = odb::query<file_record_header>;
 
       query q (query::title == t &&
-               query::modified >= to_nanoseconds (since));
+               query::modified >= since);
 
       if (o)
         q = q && query::owner == *o;
@@ -397,12 +381,12 @@ namespace obe
         r->title = t;
         r->owner = o;
         r->name = n;
-        r->created = to_nanoseconds (now);
+        r->created = now;
       }
 
       r->flag1 = fs[0];
       r->flag2 = fs[1];
-      r->modified = to_nanoseconds (now);
+      r->modified = now;
       r->size = static_cast<uint32_t> (d.size ());
       r->data = d;
 
@@ -426,7 +410,7 @@ namespace obe
       if (r == nullptr || r->title != t)
         return nullopt;
 
-      r->modified = to_nanoseconds (now);
+      r->modified = now;
       r->size = static_cast<uint32_t> (d.size ());
       r->data = d;
 
