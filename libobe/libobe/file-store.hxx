@@ -19,8 +19,6 @@ namespace obe
 {
   using boost::asio::awaitable;
 
-  enum class file_id: uint64_t {};
-
   // The stored file's header (bdLobbyFileHeader):
   //
   // uint64  file id

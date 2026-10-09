@@ -97,4 +97,5 @@ namespace obe
   enum class title_id: uint32_t {};
   enum class user_id: uint64_t {};
   enum class license_id: uint64_t {};
+  enum class file_id: uint64_t {};
 }
