@@ -27,7 +27,7 @@ pregenerated/{hxx ixx cxx}{*}: dist = (!$develop)
 
 # The checksum of the options file that the pregenerated options parser is
 # produced from (see the recipe below). It is used by the test (see
-# ../tests/testscript) in both builds.
+# ../tests/options/testscript) in both builds.
 #
 ./: pregenerated/obe/file{obe.cli.sha256}
 
@@ -87,7 +87,7 @@ if $develop
   # Also record the checksum of the options file that the pregenerated
   # version is produced from. This way the test can detect that the options
   # file was changed without updating the pregenerated version (see
-  # ../tests/testscript).
+  # ../tests/options/testscript).
   #
   s = $path($<[0])
   d = [dir_path] $src_base/pregenerated/obe

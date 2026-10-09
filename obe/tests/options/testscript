@@ -20,7 +20,7 @@ EOO
 : Test that the pregenerated options parser is up to date
 :
 : The development build regenerates it and records the checksum of the
-: options file it is produced from (see ../obe/buildfile). So this test
+: options file it is produced from (see ../../obe/buildfile). So this test
 : fails if the options file was changed without a development build.
 :
 {
