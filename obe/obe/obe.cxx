@@ -256,14 +256,14 @@ namespace obe
   static vector<publisher_file>
   load_publisher_files (const string& d)
   {
-    namespace fs = std::filesystem;
+    using namespace std::filesystem;
 
     // Return the directory entries sorted by name.
     //
-    auto entries = [] (const fs::path& p)
+    auto entries = [] (const path& p)
     {
-      vector<fs::path> r;
-      for (const fs::directory_entry& e: fs::directory_iterator (p))
+      vector<path> r;
+      for (const directory_entry& e: directory_iterator (p))
         r.push_back (e.path ());
 
       sort (r.begin (), r.end ());
@@ -273,7 +273,7 @@ namespace obe
     vector<publisher_file> r;
     try
     {
-      for (const fs::path& td: entries (d))
+      for (const path& td: entries (d))
       {
         // Parse the title id from the subdirectory name.
         //
@@ -284,7 +284,7 @@ namespace obe
         const char* e (b + tn.size ());
         const from_chars_result fr (from_chars (b, e, t));
 
-        if (!fs::is_directory (td) || fr.ec != errc () || fr.ptr != e)
+        if (!is_directory (td) || fr.ec != errc () || fr.ptr != e)
         {
           println (cerr,
                    "error: invalid publisher files title directory {}\n"
@@ -295,11 +295,11 @@ namespace obe
 
         // Read the title's files.
         //
-        for (const fs::path& f: entries (td))
+        for (const path& f: entries (td))
         {
           const string n (f.filename ().string ());
 
-          if (!fs::is_regular_file (f))
+          if (!is_regular_file (f))
           {
             println (cerr,
                      "error: publisher file {} is not a regular file",
@@ -340,7 +340,7 @@ namespace obe
         }
       }
     }
-    catch (const fs::filesystem_error& e)
+    catch (const filesystem_error& e)
     {
       println (cerr,
                "error: unable to read publisher files directory {}: {}",
