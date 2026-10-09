@@ -1,0 +1,67 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: handler
+: Test that the installed handler receives each kind of violation
+:
+{{
+  $* pre         >"precondition 'x > 0'"                     : pre
+  $* pre-msg     >"precondition 'x > 0': x must be positive" : pre-msg
+  $* pre-ok      >'ok'                                       : pre-ok
+  $* assert      >"assertion 'x == 0'"                       : assert
+  $* assert-msg  >"assertion 'x == 0': x must be zero"       : assert-msg
+  $* unreachable >"unreachable 'control reached this point'" : unreachable
+
+  : post
+  : Test that the postcondition is checked on normal exit only
+  :
+  {{
+    $* post        >"postcondition 'r > x'" : violated
+    $* post-ok     >'ok'                    : held
+    $* post-unwind >'unwound'               : unwinding
+  }}
+
+  : invariant
+  : Test that the invariant is checked on entry and on normal exit only
+  :
+  {{
+    $* invariant-entry  >"invariant 'invariant \(\)': on entry" : entry
+    $* invariant-exit   >"invariant 'invariant \(\)': on exit"  : exit
+    $* invariant-unwind >'unwound'                              : unwinding
+  }}
+}}
+
+: report
+: Test the default reporter, which prints the violation and aborts
+:
+{{
+  : pre
+  :
+  $* --report pre-msg 2>>~%EOE% == 3
+  %driver\.cxx:\d+: error: precondition violated: x > 0%
+  %driver\.cxx:\d+: note: in 'positive_msg'%
+  %driver\.cxx:\d+: note: x must be positive%
+  EOE
+
+  : assert
+  :
+  $* --report assert 2>>~%EOE% == 3
+  %driver\.cxx:\d+: error: assertion failed: x == 0%
+  %driver\.cxx:\d+: note: in 'zero'%
+  EOE
+
+  : unreachable
+  :
+  $* --report unreachable 2>>~%EOE% == 3
+  %driver\.cxx:\d+: error: control reached unreachable code%
+  %driver\.cxx:\d+: note: in 'unreachable_code'%
+  EOE
+
+  : returning
+  : Test that a handler returning doesn't discharge the violation
+  :
+  $* --returning pre >'handled' 2>>~%EOE% == 3
+  %driver\.cxx:\d+: error: precondition violated: x > 0%
+  %driver\.cxx:\d+: note: in 'positive'%
+  EOE
+}}
