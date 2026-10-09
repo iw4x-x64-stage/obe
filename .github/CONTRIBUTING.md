@@ -50,8 +50,8 @@ bdep test '!config.libobe.test.pgsql=postgres'
 
 The tests create their own databases, so the role they run as needs to be
 allowed to create databases.
-`etc/private/postgresql/obe-postgresql-setup --test-role <user>` sets up a
-local server this way.
+`obe/etc/private/postgresql/obe-postgresql-setup --test-role <user>` sets
+up a local server this way.
 
 Work on a branch of your fork of the repository and keep it up to date with
 `main` by rebasing it. The history is linear, so a branch with merge commits

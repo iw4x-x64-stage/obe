@@ -7,7 +7,7 @@
 # the process; see the libpq environment variables) must be allowed to
 # create databases. If unspecified, the PostgreSQL stores are not tested.
 #
-# See etc/private/postgresql/ in the repository for setting up a local
+# See obe/etc/private/postgresql/ in the repository for setting up a local
 # server.
 #
 config [string, null] config.libobe.test.pgsql ?= [null]
