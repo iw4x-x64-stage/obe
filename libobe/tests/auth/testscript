@@ -140,3 +140,40 @@
     $* <'decode YW J' 2>'error: invalid base64 character' != 0    : space
   }}
 }}
+
+: base64url
+:
+{{
+  : valid
+  :
+  $* <<EOI >>EOO
+  encode-url 
+  encode-url 61
+  encode-url 6162
+  encode-url 616263
+  encode-url fbff
+  decode-url YQ
+  decode-url YWI
+  decode-url YWJj
+  decode-url -_8
+  EOI
+
+  YQ
+  YWI
+  YWJj
+  -_8
+  61
+  6162
+  616263
+  fbff
+  EOO
+
+  : invalid
+  :
+  {{
+    $* <'decode-url YWJjZ' 2>'error: invalid base64url length' != 0  : length
+    $* <'decode-url YQ==' 2>'error: invalid base64url character' != 0 : padding
+    $* <'decode-url -/8' 2>'error: invalid base64url character' != 0  : slash
+    $* <'decode-url YW J' 2>'error: invalid base64 character' != 0    : space
+  }}
+}}

@@ -49,6 +49,8 @@ to_hex (span<const uint8_t> d)
 //                           127 to 0, respectively.
 // encode <hex>              Print the data in base64.
 // decode <base64>           Print the base64 data in hex.
+// encode-url <hex>          Print the data in base64url.
+// decode-url <base64url>    Print the base64url data in hex.
 //
 // Integers are decimal. The JSON and base64 arguments extend to the end of
 // the line. On error print it to stderr and exit with the non-zero status.
@@ -123,7 +125,7 @@ main ()
 
         println ("{}", auth_reply (move (g)).json ());
       }
-      else if (c == "encode")
+      else if (c == "encode" || c == "encode-url")
       {
         string h;
         is >> h;
@@ -134,11 +136,16 @@ main ()
                                                     nullptr,
                                                     16)));
 
-        println ("{}", base64_encode (d));
+        println ("{}",
+                 c == "encode" ? base64_encode (d) : base64url_encode (d));
       }
       else if (c == "decode")
       {
         println ("{}", to_hex (base64_decode (rest ())));
+      }
+      else if (c == "decode-url")
+      {
+        println ("{}", to_hex (base64url_decode (rest ())));
       }
       else
         throw invalid_argument ("unknown command '" + c + "'");
