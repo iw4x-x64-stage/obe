@@ -19,7 +19,7 @@ namespace obe
   // reply in the response body (with the 200 status even for the error
   // replies). Both are JSON objects:
   //
-  // {"auth_task": 44, "iv_seed": <uint32>, "title_id": <uint32>}
+  // {"auth_task": "44", "iv_seed": "<uint32>", "title_id": "<uint32>"}
   //
   // {"auth_task": 45, "code": 700, "iv_seed": <uint32>,
   //  "client_ticket": "<base64>", "server_ticket": "<base64>",
@@ -27,7 +27,12 @@ namespace obe
   //
   // {"auth_task": 45, "code": <error>}
   //
-  // Note that extra_data is a string containing JSON rather than an object.
+  // The request writes its numbers as strings of decimal digits, since the
+  // client's makeAuthForXBoxOne() sets them with bdJSON::setUInt64(), which
+  // formats them with %llu. The reply writes them as numbers, and the client
+  // reads both forms. Note also that extra_data is a string containing JSON
+  // rather than an object.
+  //
   // The client uses the reply's iv_seed as the initial gateway frame seed.
   //
   // When parsing, unknown object members are ignored.

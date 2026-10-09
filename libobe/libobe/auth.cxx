@@ -4,7 +4,9 @@
 #include <libobe/auth.hxx>
 
 #include <format>
-#include <limits> // numeric_limits
+#include <limits>       // numeric_limits
+#include <charconv>     // from_chars
+#include <system_error> // errc
 
 #include <boost/json.hpp>
 
@@ -73,6 +75,39 @@ namespace obe
     return *r;
   }
 
+  // Return the unsigned integer member value written as a string of decimal
+  // digits, verifying it doesn't exceed the maximum.
+  //
+  static uint64_t
+  decimal_member (const json::object& o,
+                  const char* n,
+                  uint64_t max,
+                  const char* what)
+  {
+    const json::value& v (member (o, n, what));
+
+    // Note that from_chars() accepts neither a sign nor whitespace, so only
+    // the digits up to the end make a value.
+    //
+    optional<uint64_t> r;
+    if (v.is_string ())
+    {
+      const json::string& s (v.get_string ());
+      const char* e (s.data () + s.size ());
+
+      uint64_t u;
+      from_chars_result c (from_chars (s.data (), e, u));
+
+      if (c.ec == errc () && c.ptr == e)
+        r = u;
+    }
+
+    if (!r || *r > max)
+      throw invalid_input ("invalid {}: invalid '{}' member value", what, n);
+
+    return *r;
+  }
+
   static string_view
   string_member (const json::object& o, const char* n, const char* what)
   {
@@ -85,13 +120,11 @@ namespace obe
     return v.get_string ();
   }
 
+  // Verify the auth_task member value.
+  //
   static void
-  expect_task (const json::object& o, uint64_t t, const char* what)
+  expect_task (uint64_t v, uint64_t t, const char* what)
   {
-    const uint64_t v (unsigned_member (o,
-                                       "auth_task",
-                                       numeric_limits<uint64_t>::max (),
-                                       what));
     if (v != t)
       throw invalid_input ("invalid {}: auth task {} instead of {}",
                            what, v, t);
@@ -108,22 +141,23 @@ namespace obe
     const char* what ("auth request");
     const json::object o (parse_object (s, what));
 
-    expect_task (o, task, what);
-
+    const uint64_t u64 (numeric_limits<uint64_t>::max ());
     const uint64_t u32 (numeric_limits<uint32_t>::max ());
 
-    iv_seed = static_cast<uint32_t> (unsigned_member (o, "iv_seed", u32, what));
+    expect_task (decimal_member (o, "auth_task", u64, what), task, what);
+
+    iv_seed = static_cast<uint32_t> (decimal_member (o, "iv_seed", u32, what));
     title = title_id {
-      static_cast<uint32_t> (unsigned_member (o, "title_id", u32, what))};
+      static_cast<uint32_t> (decimal_member (o, "title_id", u32, what))};
   }
 
   string auth_request::
   json () const
   {
     boost::json::object o;
-    o["auth_task"] = task;
-    o["iv_seed"] = iv_seed;
-    o["title_id"] = to_underlying (title);
+    o["auth_task"] = to_string (task);
+    o["iv_seed"] = to_string (iv_seed);
+    o["title_id"] = to_string (to_underlying (title));
     return boost::json::serialize (o);
   }
 
@@ -142,9 +176,10 @@ namespace obe
     const char* what ("auth reply");
     const json::object o (parse_object (s, what));
 
-    expect_task (o, task, what);
-
+    const uint64_t u64 (numeric_limits<uint64_t>::max ());
     const uint64_t u32 (numeric_limits<uint32_t>::max ());
+
+    expect_task (unsigned_member (o, "auth_task", u64, what), task, what);
 
     code = static_cast<uint32_t> (unsigned_member (o, "code", u32, what));
 

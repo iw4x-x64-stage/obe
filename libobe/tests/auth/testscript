@@ -2,53 +2,87 @@
 # SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
 
 : request
+: Test the request, whose numbers the client writes as strings of decimal
+: digits
 :
 {{
   : serialize
   :
-  $* <'make-request 3735928559 1234' >'{"auth_task":44,"iv_seed":3735928559,"title_id":1234}'
+  $* <'make-request 3735928559 1234' >'{"auth_task":"44","iv_seed":"3735928559","title_id":"1234"}'
 
   : parse
   :
   $* <<EOI >>EOO
-  request {"auth_task":44,"iv_seed":3735928559,"title_id":1234}
-  request {"title_id":1,"iv_seed":2,"auth_task":44,"extra":[]}
+  request {"auth_task": "44", "title_id": "2010", "iv_seed": "3126742541"}
+  request {"title_id":"1","iv_seed":"2","auth_task":"44","extra":[]}
+  request {"auth_task":"44","iv_seed":"0","title_id":"4294967295"}
   EOI
-  3735928559 1234
+  3126742541 2010
   2 1
+  0 4294967295
   EOO
 
   : syntax
   :
-  $* <'request {"auth_task":44' 2>>~/EOE/ != 0
+  $* <'request {"auth_task":"44"' 2>>~/EOE/ != 0
   /error: invalid auth request: .+/
   EOE
 
   : object
   :
-  $* <'request [44]' 2>'error: invalid auth request: object expected' != 0
+  $* <'request ["44"]' 2>'error: invalid auth request: object expected' != 0
 
   : task
   :
-  $* <'request {"auth_task":45,"iv_seed":1,"title_id":1}' 2>>EOE != 0
+  $* <'request {"auth_task":"45","iv_seed":"1","title_id":"1"}' 2>>EOE != 0
   error: invalid auth request: auth task 45 instead of 44
   EOE
 
   : missing
   :
-  $* <'request {"auth_task":44,"title_id":1}' 2>>EOE != 0
+  $* <'request {"auth_task":"44","title_id":"1"}' 2>>EOE != 0
   error: invalid auth request: missing 'iv_seed' member
   EOE
 
-  : range
+  : number
   :
-  $* <'request {"auth_task":44,"iv_seed":4294967296,"title_id":1}' 2>>EOE != 0
+  $* <'request {"auth_task":44,"iv_seed":1,"title_id":1}' 2>>EOE != 0
+  error: invalid auth request: invalid 'auth_task' member value
+  EOE
+
+  : empty
+  :
+  $* <'request {"auth_task":"44","iv_seed":"","title_id":"1"}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+
+  : digits
+  :
+  $* <'request {"auth_task":"44","iv_seed":"1x","title_id":"1"}' 2>>EOE != 0
   error: invalid auth request: invalid 'iv_seed' member value
   EOE
 
   : negative
   :
-  $* <'request {"auth_task":44,"iv_seed":-1,"title_id":1}' 2>>EOE != 0
+  $* <'request {"auth_task":"44","iv_seed":"-1","title_id":"1"}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+
+  : sign
+  :
+  $* <'request {"auth_task":"44","iv_seed":"+1","title_id":"1"}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+
+  : space
+  :
+  $* <'request {"auth_task":"44","iv_seed":" 1","title_id":"1"}' 2>>EOE != 0
+  error: invalid auth request: invalid 'iv_seed' member value
+  EOE
+
+  : range
+  :
+  $* <'request {"auth_task":"44","iv_seed":"4294967296","title_id":"1"}' 2>>EOE != 0
   error: invalid auth request: invalid 'iv_seed' member value
   EOE
 }}

@@ -6,7 +6,7 @@ test.options += $src_base/cert.pem $src_base/key.pem
 : grant
 :
 $* <<EOI >>EOO 2>>~%EOE%
-POST /auth/ user:42:player {"auth_task":44,"iv_seed":5,"title_id":1234}
+POST /auth/ user:42:player {"auth_task":"44","iv_seed":"5","title_id":"1234"}
 EOI
 200 code 700 iv 5 user 42 name player title 1234 server-user 42 key match RETAIL PC
 EOO
@@ -17,11 +17,11 @@ EOE
 : Test the application-level failures
 :
 $* <<EOI >>EOO 2>>~%EOE%
-POST /auth/ deny {"auth_task":44,"iv_seed":5,"title_id":1234}
-POST /auth/ forged {"auth_task":44,"iv_seed":5,"title_id":1234}
-POST /auth/ fail {"auth_task":44,"iv_seed":5,"title_id":1234}
-POST /auth/ user:1:a {"auth_task":44,"iv_seed":5,"title_id":4321}
-POST /auth/ user:1:a {"auth_task":45}
+POST /auth/ deny {"auth_task":"44","iv_seed":"5","title_id":"1234"}
+POST /auth/ forged {"auth_task":"44","iv_seed":"5","title_id":"1234"}
+POST /auth/ fail {"auth_task":"44","iv_seed":"5","title_id":"1234"}
+POST /auth/ user:1:a {"auth_task":"44","iv_seed":"5","title_id":"4321"}
+POST /auth/ user:1:a {"auth_task":"45"}
 EOI
 200 code 704
 200 code 704
