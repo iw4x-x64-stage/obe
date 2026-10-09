@@ -1,0 +1,28 @@
+# Copyright (c) the IW4x authors (see the AUTHORS file).
+# SPDX-License-Identifier: GPL-3.0-only WITH AdditionRef-IW4x-Exception-1.1
+
+: addresses
+: Test the IPv4 and IPv6 endpoints of both protocols
+:
+$* <<EOI >>EOO
+tcp 127.0.0.1 3074
+udp 192.0.2.1 3075
+tcp ::1 443
+udp fe80::1 0
+EOI
+127.0.0.1:3074
+192.0.2.1:3075
+[::1]:443
+[fe80::1]:0
+EOO
+
+: specification
+: Test the format specification applying to the whole endpoint
+:
+$* <<EOI >>EOO
+tcp 127.0.0.1 3074 >16
+tcp ::1 443 *<12
+EOI
+  127.0.0.1:3074
+[::1]:443***
+EOO
