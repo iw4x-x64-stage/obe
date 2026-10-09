@@ -800,6 +800,8 @@ namespace obe
     sandbox_specified_ (false),
     platform_ ("PC"),
     platform_specified_ (false),
+    publisher_files_ (),
+    publisher_files_specified_ (false),
     print_endpoints_ (),
     db_name_ (),
     db_name_specified_ (false),
@@ -1012,6 +1014,22 @@ namespace obe
        << "                                clients. The default is \033[1mPC\033[0m." << ::std::endl;
 
     os << std::endl
+       << "\033[1m--publisher-files\033[0m \033[4mdir\033[0m           Publish the files in the subdirectories of \033[4mdir\033[0m" << ::std::endl
+       << "                                as the publisher files of the titles that the" << ::std::endl
+       << "                                subdirectories are named after. The clients of" << ::std::endl
+       << "                                the title can list and download these files," << ::std::endl
+       << "                                for example, IW4x (title 2010) downloads its" << ::std::endl
+       << "                                playlists from \033[1m2010/playlists.patch2\033[0m. The \033[1mobe\033[0m" << ::std::endl
+       << "                                package installs the IW4x files into the" << ::std::endl
+       << "                                \033[1mpublisher/\033[0m subdirectory of its data directory" << ::std::endl
+       << "                                (for example, \033[1m/usr/share/obe/publisher/\033[0m)." << ::std::endl
+       << ::std::endl
+       << "                                The files are published on startup, replacing" << ::std::endl
+       << "                                the contents of the publisher files with the" << ::std::endl
+       << "                                same names. Note that a file that is removed" << ::std::endl
+       << "                                from \033[4mdir\033[0m stays published." << ::std::endl;
+
+    os << std::endl
        << "\033[1m--print-endpoints\033[0m               Print the authentication, gateway, and" << ::std::endl
        << "                                bandwidth test endpoints to \033[1mstdout\033[0m, one per" << ::std::endl
        << "                                line, once listening. This is primarily useful" << ::std::endl
@@ -1157,6 +1175,9 @@ namespace obe
       _cli_options_map_["--platform"] =
       &::obe::cli::thunk< options, std::string, &options::platform_,
         &options::platform_specified_ >;
+      _cli_options_map_["--publisher-files"] =
+      &::obe::cli::thunk< options, std::string, &options::publisher_files_,
+        &options::publisher_files_specified_ >;
       _cli_options_map_["--print-endpoints"] =
       &::obe::cli::thunk< options, &options::print_endpoints_ >;
       _cli_options_map_["--db-name"] =

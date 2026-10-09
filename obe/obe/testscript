@@ -71,6 +71,54 @@ sha256sum --sum-only $src_base/obe.cli >>>$src_base/pregenerated/obe/obe.cli.sha
   /error: unable to load TLS certificate and key: .+/
   EOE
 
+  : publisher-files
+  : Test the publisher files errors
+  :
+  {{
+    o = --tls-certificate c.pem --tls-key k.pem --publisher-files files
+
+    : missing
+    :
+    $* $o 2>>EOE != 0
+    error: unable to read publisher files directory files: No such file or directory
+    EOE
+
+    : title
+    :
+    mkdir -p files/iw4x;
+    $* $o 2>>EOE != 0
+    error: invalid publisher files title directory files/iw4x
+      info: name it after the title id, for example, 2010
+    EOE
+
+    : file
+    :
+    mkdir -p files/2010/dir;
+    $* $o 2>>EOE != 0
+    error: publisher file files/2010/dir is not a regular file
+    EOE
+
+    : name
+    :
+    h = nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn;
+    n = "$h$h"; # 128 characters.
+    mkdir -p files/2010;
+    touch files/2010/$n;
+    $* $o 2>>"EOE" != 0
+    error: publisher file name $n is longer than 127 characters
+    EOE
+
+    : valid
+    : Test that valid publisher files get loaded (and so the startup fails
+    : later, loading the certificate)
+    :
+    mkdir -p files/2010;
+    echo 'version 1' >=files/2010/playlists.patch2;
+    $* $o 2>>~/EOE/ != 0
+    /error: unable to load TLS certificate and key: .+/
+    EOE
+  }}
+
   : migrate
   :
   $* --migrate 2>>EOE != 0

@@ -9,8 +9,8 @@ include <cstdint>;
 namespace obe
 {
   {
-    "<options> <file> <addr> <port> <id> <sec> <level> <name> <user> <pass>
-     <host> <num>",
+    "<options> <file> <dir> <addr> <port> <id> <sec> <level> <name> <user>
+     <pass> <host> <num>",
 
     "\h|SYNOPSIS|
 
@@ -186,6 +186,22 @@ namespace obe
       "<name>",
       "The device platform info reported to the clients. The default is
        \cb{PC}."
+    }
+
+    std::string --publisher-files
+    {
+      "<dir>",
+      "Publish the files in the subdirectories of <dir> as the publisher files
+       of the titles that the subdirectories are named after. The clients of
+       the title can list and download these files, for example, IW4x
+       (title 2010) downloads its playlists from
+       \cb{2010/playlists.patch2}. The \cb{obe} package installs the IW4x
+       files into the \cb{publisher/} subdirectory of its data directory
+       (for example, \cb{/usr/share/obe/publisher/}).
+
+       The files are published on startup, replacing the contents of the
+       publisher files with the same names. Note that a file that is removed
+       from <dir> stays published."
     }
 
     bool --print-endpoints

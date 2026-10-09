@@ -600,6 +600,12 @@ namespace obe
     bool
     platform_specified () const;
 
+    const std::string&
+    publisher_files () const;
+
+    bool
+    publisher_files_specified () const;
+
     const bool&
     print_endpoints () const;
 
@@ -709,6 +715,8 @@ namespace obe
     bool sandbox_specified_;
     std::string platform_;
     bool platform_specified_;
+    std::string publisher_files_;
+    bool publisher_files_specified_;
     bool print_endpoints_;
     std::string db_name_;
     bool db_name_specified_;

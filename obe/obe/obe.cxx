@@ -6,10 +6,14 @@
 #include <format>
 #include <memory>    // unique_ptr, make_unique()
 #include <string>
+#include <vector>
 #include <cstdio>    // fflush(), stdout
 #include <cstdint>
 #include <csignal>   // SIGINT, SIGTERM
 #include <fstream>
+#include <charconv>  // from_chars()
+#include <algorithm> // sort()
+#include <filesystem>
 #include <sstream>
 #include <utility>   // move()
 #include <optional>
@@ -234,6 +238,119 @@ namespace obe
     return r;
   }
 
+  // The publisher file to publish (see --publisher-files).
+  //
+  struct publisher_file
+  {
+    title_id title;
+    string   name;
+    bytes    data;
+  };
+
+  // Read the publisher files from the subdirectories of the directory, each
+  // named after the title id. Issue diagnostics and throw failed on error.
+  //
+  // Note that we sort the entries so that the files are published (and so
+  // created with their ids) in the same order on every startup.
+  //
+  static vector<publisher_file>
+  load_publisher_files (const string& d)
+  {
+    namespace fs = std::filesystem;
+
+    // Return the directory entries sorted by name.
+    //
+    auto entries = [] (const fs::path& p)
+    {
+      vector<fs::path> r;
+      for (const fs::directory_entry& e: fs::directory_iterator (p))
+        r.push_back (e.path ());
+
+      sort (r.begin (), r.end ());
+      return r;
+    };
+
+    vector<publisher_file> r;
+    try
+    {
+      for (const fs::path& td: entries (d))
+      {
+        // Parse the title id from the subdirectory name.
+        //
+        const string tn (td.filename ().string ());
+
+        uint32_t t (0);
+        const char* b (tn.data ());
+        const char* e (b + tn.size ());
+        const from_chars_result fr (from_chars (b, e, t));
+
+        if (!fs::is_directory (td) || fr.ec != errc () || fr.ptr != e)
+        {
+          println (cerr,
+                   "error: invalid publisher files title directory {}\n"
+                   "  info: name it after the title id, for example, 2010",
+                   td.string ());
+          throw failed ();
+        }
+
+        // Read the title's files.
+        //
+        for (const fs::path& f: entries (td))
+        {
+          const string n (f.filename ().string ());
+
+          if (!fs::is_regular_file (f))
+          {
+            println (cerr,
+                     "error: publisher file {} is not a regular file",
+                     f.string ());
+            throw failed ();
+          }
+
+          if (n.size () > file_header::max_name)
+          {
+            println (cerr,
+                     "error: publisher file name {} is longer than {} "
+                     "characters",
+                     n, file_header::max_name);
+            throw failed ();
+          }
+
+          ifstream is (f, ios::binary);
+          if (!is)
+          {
+            println (cerr,
+                     "error: unable to open publisher file {}",
+                     f.string ());
+            throw failed ();
+          }
+
+          bytes data ((istreambuf_iterator<char> (is)),
+                      istreambuf_iterator<char> ());
+
+          if (is.bad ())
+          {
+            println (cerr,
+                     "error: unable to read publisher file {}",
+                     f.string ());
+            throw failed ();
+          }
+
+          r.push_back (publisher_file {title_id {t}, n, move (data)});
+        }
+      }
+    }
+    catch (const fs::filesystem_error& e)
+    {
+      println (cerr,
+               "error: unable to read publisher files directory {}: {}",
+               e.path1 ().string (), e.code ().message ());
+      throw failed ();
+    }
+
+    return r;
+  }
+
   static int
   main (int argc, char* argv[])
   try
@@ -394,6 +511,13 @@ namespace obe
       throw failed ();
     }
 
+    // Load the publisher files, if any.
+    //
+    const vector<publisher_file> pfs (
+      o.publisher_files_specified ()
+      ? load_publisher_files (o.publisher_files ())
+      : vector<publisher_file> ());
+
     const tcp::endpoint ae (
       address (o.auth_address (), "authentication"), o.auth_port ());
 
@@ -489,6 +613,61 @@ namespace obe
     // services (see context for details).
     //
     context ctx;
+
+    // Publish the publisher files.
+    //
+    // Note that we publish them before serving so that the clients that
+    // connect right away find them.
+    //
+    if (!pfs.empty ())
+    {
+      auto publish_all = [&files, &pfs] () -> asio::awaitable<void>
+      {
+        const timestamp now (system_clock::now ());
+
+        for (const publisher_file& f: pfs)
+        {
+          const file_header h (
+            co_await publish (*files, f.title, f.name, f.data, now));
+
+          if (verb >= 3)
+            println (cerr,
+                     "published file {} ({} bytes) of title {} as {}",
+                     f.name,
+                     f.data.size (),
+                     to_underlying (f.title),
+                     to_underlying (h.id));
+        }
+      };
+
+      // Run the publishing to completion, which also waits for the database
+      // operations (see pgsql_database).
+      //
+      exception_ptr ep;
+      asio::co_spawn (ctx, publish_all (), [&ep] (exception_ptr e)
+      {
+        ep = move (e);
+      });
+
+      ctx.run ();
+      ctx.restart ();
+
+      if (ep != nullptr)
+      {
+        try
+        {
+          rethrow_exception (ep);
+        }
+        catch (const std::exception& e)
+        {
+          println (cerr, "error: unable to publish files: {}", e.what ());
+          throw failed ();
+        }
+      }
+
+      if (verb >= 2)
+        println (cerr, "published {} publisher file(s)", pfs.size ());
+    }
 
     // Create the gateway services.
     //

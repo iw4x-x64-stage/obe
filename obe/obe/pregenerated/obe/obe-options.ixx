@@ -515,6 +515,18 @@ namespace obe
     return this->platform_specified_;
   }
 
+  inline const std::string& options::
+  publisher_files () const
+  {
+    return this->publisher_files_;
+  }
+
+  inline bool options::
+  publisher_files_specified () const
+  {
+    return this->publisher_files_specified_;
+  }
+
   inline const bool& options::
   print_endpoints () const
   {
